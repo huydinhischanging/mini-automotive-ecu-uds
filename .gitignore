@@ -1,0 +1,30 @@
+# STM32CubeIDE build output
+Debug/
+Release/
+*.o
+*.d
+*.su
+*.cyclo
+*.elf
+*.bin
+*.hex
+*.list
+*.map
+
+# IDE / workspace
+.metadata/
+.vscode/
+*.launch
+
+# CubeMX backups
+*.ioc.bak
+Backup/
+
+# Python (tester)
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+Thumbs.db
+.DS_Store
