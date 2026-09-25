@@ -108,11 +108,30 @@ cd tests
 make          # needs gcc (Linux, or MSYS2 UCRT64 on Windows)
 ```
 
+## Milestones
+
+### M1 — Sensor ECU bring-up (FDCAN internal loopback) ✅
+
+NUCLEO-G431RB samples the potentiometer and publishes `0x100` (10 ms) and `0x101` (100 ms).
+In FDCAN internal loopback the controller receives its own frames, which verifies bit-timing
+configuration, acceptance filter, RX interrupt and frame packing without a transceiver.
+
+![Sensor ECU UART log in internal loopback](docs/images/m1_sensor_loopback_uart.png)
+
+| Check | Result |
+|---|---|
+| TX rate | 110 frames/s (100 × `0x100` + 10 × `0x101`) as designed |
+| RX in loopback | every `0x100` received back (`rx100` +100/s) |
+| Long run | 59 000+ frames, 0 dropped, 0 bus-off |
+| ADC | full sweep follows the potentiometer, ±1–2 LSB noise at rest |
+| Fault injection (B1) | pending hardware check |
+
 ## Roadmap
 
 - [x] Sensor ECU: CubeMX setup (170 MHz from HSE, FDCAN 500 kbit/s, ADC, TIM6 10 ms tick)
 - [x] Sensor ECU: MCAL drivers, cyclic 0x100/0x101 with alive counter + CRC, bus-off recovery
-- [ ] Sensor ECU: verify in internal loopback, then on the real bus with a logic analyzer
+- [x] Sensor ECU: verified in FDCAN internal loopback (M1)
+- [ ] Sensor ECU: verify on the real bus with a logic analyzer
 - [ ] Control ECU: OpenSTLinux + M4 firmware, FDCAN assigned to M4, FreeRTOS tasks
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [ ] UDS server with services above
