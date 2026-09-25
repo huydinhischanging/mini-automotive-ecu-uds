@@ -128,6 +128,23 @@ configuration, acceptance filter, RX interrupt and frame packing without a trans
 | ADC | full sweep follows the potentiometer, ±1–2 LSB noise at rest |
 | Fault injection (B1) | pending hardware check |
 
+## Bring-up notes (STM32MP157 Cortex-M4)
+
+Issues found while bringing up the Control ECU in production mode (Linux on the A7
+starts the M4 through remoteproc). Diagnosed by reading M4 RAM and peripheral
+registers from Linux (`/dev/mem`), without a debugger.
+
+| Symptom | Root cause | Fix |
+|---|---|---|
+| FreeRTOS hangs on the first tick (`xTickCount = 0`) | CubeMX sets `USE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION = 1` but generates no `SysTick_Handler` when TIM7 is the HAL timebase, so SysTick lands in `Default_Handler` | Override to `0` in the USER CODE section of `FreeRTOSConfig.h` so `cmsis_os2.c` provides the handler |
+| FDCAN never leaves INIT (`CCCR.INIT` stuck at 1, even when cleared from Linux) | Linux leaves the FDCAN kernel mux on PLL4_R with that PLL output disabled. Kernel muxes are glitch-free and only switch while *both* inputs run, so the switch to HSE never completed | `CanDrv_PrepareKernelClock()`: enable HSE kernel output, briefly enable the old PLL output during the switch, restore it afterwards, read back the result |
+
+Known open points:
+- HAL tick (TIM7) runs at 2 kHz in production mode: the timer clock set by Linux differs
+  from the CubeMX assumption. The application uses the FreeRTOS tick (correct 1 kHz).
+- M4 log goes to UART7 (Arduino D0/D1). A remoteproc trace buffer (log readable over SSH)
+  is planned as a cable-free alternative.
+
 ## Roadmap
 
 - [x] Sensor ECU: CubeMX setup (170 MHz from HSE, FDCAN 500 kbit/s, ADC, TIM6 10 ms tick)
