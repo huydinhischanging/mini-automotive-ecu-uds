@@ -51,7 +51,7 @@ Layered, AUTOSAR-inspired. Only the MCAL layer touches the HAL/registers.
 ```
 Application    sensor_app / control_app
 Services       uds_server, dtc_manager           (planned, hardware independent)
-Communication  isotp, can_if                     (planned, hardware independent)
+Communication  isotp (done), can_if              (hardware independent)
 MCAL           can_drv, adc_drv, gpio_drv, pwm_drv
 ```
 
@@ -78,8 +78,9 @@ sensor_ecu/          STM32CubeIDE project, NUCLEO-G431RB
   Core/Mcal/         can_drv, adc_drv, gpio_drv
   Core/App/          sensor_app, can_matrix.h, crc8
 control_ecu/         (planned) STM32MP157 M4 firmware
-common/              (planned) isotp, uds_server, dtc_manager
-tests/               (planned) host unit tests
+common/isotp/        ISO 15765-2 transport layer (SF/FF/CF/FC, BS, STmin, N_Bs/N_Cr timeouts)
+common/              (planned) uds_server, dtc_manager
+tests/               host unit tests (make)
 tester/              (planned) Python UDS client (SocketCAN)
 ```
 
@@ -98,13 +99,22 @@ needed) or normal mode (real bus).
 **Fault injection:** the blue user button B1 cycles through
 `NONE` → `SILENT` (stop sending 0x100, triggers timeout DTC) → `OUT_OF_RANGE` (300 km/h, triggers range DTC).
 
+## Unit tests
+
+Hardware-independent modules are tested on the PC with fake CAN driver and clock:
+
+```
+cd tests
+make          # needs gcc (Linux, or MSYS2 UCRT64 on Windows)
+```
+
 ## Roadmap
 
 - [x] Sensor ECU: CubeMX setup (170 MHz from HSE, FDCAN 500 kbit/s, ADC, TIM6 10 ms tick)
 - [x] Sensor ECU: MCAL drivers, cyclic 0x100/0x101 with alive counter + CRC, bus-off recovery
 - [ ] Sensor ECU: verify in internal loopback, then on the real bus with a logic analyzer
 - [ ] Control ECU: OpenSTLinux + M4 firmware, FDCAN assigned to M4, FreeRTOS tasks
-- [ ] ISO-TP (SF, FF, CF, FC)
+- [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [ ] UDS server with services above
 - [ ] DTC manager (timeout, out-of-range, injected faults)
 - [ ] Python tester on Linux (SocketCAN)

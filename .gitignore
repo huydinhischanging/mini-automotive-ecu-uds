@@ -11,6 +11,9 @@ Release/
 *.list
 *.map
 
+# Host unit test output
+tests/build/
+
 # IDE / workspace
 .metadata/
 .vscode/
