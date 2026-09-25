@@ -25,11 +25,55 @@ static uint32_t              s_kernelClockHz = 0U;
 
 static volatile CanDrv_Stats_t s_stats = {0U, 0U, 0U, 0U, 0U};
 
+/* Kernel clock muxes are glitch-free: a switch only completes while BOTH the
+ * old and the new source are running. Linux selects PLL4_R for FDCAN but keeps
+ * that PLL output disabled (unused), so a plain switch to HSE gets stuck and
+ * FDCAN is left with no clock at all (CCCR.INIT can never be cleared).
+ * Returns the PLLxCR register and DIVxEN bit feeding the current source. */
+static void OldSourceGate(uint32_t source, volatile uint32_t **pllcr, uint32_t *diven)
+{
+    *pllcr = NULL;
+    *diven = 0U;
+    switch (source)
+    {
+        case RCC_FDCANCLKSOURCE_PLL3:   *pllcr = &RCC->PLL3CR; *diven = RCC_PLL3CR_DIVQEN; break;
+        case RCC_FDCANCLKSOURCE_PLL4_Q: *pllcr = &RCC->PLL4CR; *diven = RCC_PLL4CR_DIVQEN; break;
+        case RCC_FDCANCLKSOURCE_PLL4_R: *pllcr = &RCC->PLL4CR; *diven = RCC_PLL4CR_DIVREN; break;
+        default:                        break;   /* HSE: nothing to do */
+    }
+}
+
 uint32_t CanDrv_PrepareKernelClock(void)
 {
-    /* Linux does not use FDCAN (node disabled in the device tree), so the M4
-     * may pick the kernel clock. HSE gives exactly 500 kbit/s with 16 tq. */
-    __HAL_RCC_FDCAN_CONFIG(RCC_FDCANCLKSOURCE_HSE);
+    uint32_t           current = READ_BIT(RCC->FDCANCKSELR, RCC_FDCANCKSELR_FDCANSRC);
+    volatile uint32_t *pllcr;
+    uint32_t           diven;
+    bool               tempEnabled = false;
+
+    /* The HSE oscillator runs, but its output towards peripheral kernel clocks
+     * is gated separately (HSEKERON) and Linux leaves it off because none of
+     * its own drivers needs it. OCENSETR is write-1-to-set. */
+    WRITE_REG(RCC->OCENSETR, RCC_OCENSETR_HSEKERON);
+
+    if (current != RCC_FDCANCLKSOURCE_HSE)
+    {
+        OldSourceGate(current, &pllcr, &diven);
+        if ((pllcr != NULL) && (READ_BIT(*pllcr, diven) == 0U))
+        {
+            SET_BIT(*pllcr, diven);     /* old source present for the switch */
+            tempEnabled = true;
+        }
+
+        /* Linux does not use FDCAN (node disabled in the device tree), so the
+         * M4 may pick the kernel clock. HSE gives exactly 500 kbit/s, 16 tq. */
+        __HAL_RCC_FDCAN_CONFIG(RCC_FDCANCLKSOURCE_HSE);
+        HAL_Delay(1U);                  /* >> a few cycles of both clocks */
+
+        if (tempEnabled)
+        {
+            CLEAR_BIT(*pllcr, diven);   /* leave the PLL as Linux configured it */
+        }
+    }
 
     /* Read back: with RCC TrustZone enabled the write could be ignored. */
     s_kernelClockHz = HAL_RCCEx_GetPeriphCLKFreq(RCC_PERIPHCLK_FDCAN);

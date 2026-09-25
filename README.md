@@ -77,7 +77,9 @@ Negative responses (e.g. NRC `0x11` serviceNotSupported, `0x31` requestOutOfRang
 sensor_ecu/          STM32CubeIDE project, NUCLEO-G431RB
   Core/Mcal/         can_drv, adc_drv, gpio_drv
   Core/App/          sensor_app, can_matrix.h, crc8
-control_ecu/         (planned) STM32MP157 M4 firmware
+control_ecu/CM4/     STM32MP157 Cortex-M4 firmware (FreeRTOS), loaded by Linux remoteproc
+common/can/          CAN matrix shared by all nodes
+common/e2e/          alive counter + CRC-8 protection (sender and receiver)
 common/isotp/        ISO 15765-2 transport layer (SF/FF/CF/FC, BS, STmin, N_Bs/N_Cr timeouts)
 common/              (planned) uds_server, dtc_manager
 tests/               host unit tests (make)
@@ -132,7 +134,9 @@ configuration, acceptance filter, RX interrupt and frame packing without a trans
 - [x] Sensor ECU: MCAL drivers, cyclic 0x100/0x101 with alive counter + CRC, bus-off recovery
 - [x] Sensor ECU: verified in FDCAN internal loopback (M1)
 - [ ] Sensor ECU: verify on the real bus with a logic analyzer
-- [ ] Control ECU: OpenSTLinux + M4 firmware, FDCAN assigned to M4, FreeRTOS tasks
+- [x] Control ECU: M4 firmware on OpenSTLinux (remoteproc), FDCAN owned by M4, FreeRTOS tasks,
+      E2E check, timeout/range faults, safe-state PWM — verified in FDCAN internal loopback
+- [ ] Control ECU <-> Sensor ECU on the real bus
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [ ] UDS server with services above
 - [ ] DTC manager (timeout, out-of-range, injected faults)

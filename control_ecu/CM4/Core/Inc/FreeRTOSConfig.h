@@ -69,7 +69,7 @@ extern uint32_t SystemCoreClock;
 #define configUSE_SB_COMPLETED_CALLBACK          ( 0 )
 #define configUSE_MINI_LIST_ITEM                ( 1 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)3072)
+#define configTOTAL_HEAP_SIZE                    ((size_t)16384)
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configHEAP_CLEAR_MEMORY_ON_FREE          valueNotSetted
 #define configUSE_TRACE_FACILITY                 1
@@ -168,6 +168,13 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+
+/* CubeMX sets the flag above to 1 (= "stm32mp1xx_it.c provides SysTick_Handler")
+ * but, with TIM7 as HAL timebase, it does not generate that handler. SysTick
+ * then falls into Default_Handler (endless loop) on the very first RTOS tick.
+ * 0 lets cmsis_os2.c provide the standard SysTick_Handler -> xPortSysTickHandler. */
+#undef  USE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION
+#define USE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION 0
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */
