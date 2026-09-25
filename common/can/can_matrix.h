@@ -2,8 +2,9 @@
  * @file    can_matrix.h
  * @brief   CAN matrix of the Mini ECU network (IDs, cycle times, signal layout).
  *
- * Shared contract between all nodes. Move to a common/ folder once the
- * Control ECU project exists, so both sides compile against the same file.
+ * Shared contract between all nodes: the Sensor ECU and the Control ECU both
+ * compile against this file, so the frame layout can never drift apart.
+ * Byte 6/7 of cyclic frames (alive counter, CRC) are handled by common/e2e.
  */
 #ifndef CAN_MATRIX_H
 #define CAN_MATRIX_H
@@ -42,9 +43,7 @@
 #define CANID_UDS_REQ_CONTROL       (0x7E0U)    /* Tester -> Control ECU */
 #define CANID_UDS_RESP_CONTROL      (0x7E8U)    /* Control ECU -> Tester */
 
-/* Common layout helpers */
-#define E2E_ALIVE_COUNTER_BYTE      (6U)
-#define E2E_ALIVE_COUNTER_MASK      (0x0FU)
-#define E2E_CRC_BYTE                (7U)
+/* Timeout after which the Control ECU treats 0x100 as lost (10 missed cycles). */
+#define SENSOR_SPEED_TIMEOUT_MS     (100U)
 
 #endif /* CAN_MATRIX_H */

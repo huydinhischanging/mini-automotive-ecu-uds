@@ -16,7 +16,7 @@
 #include "adc_drv.h"
 #include "can_drv.h"
 #include "can_matrix.h"
-#include "crc8.h"
+#include "e2e.h"
 #include "gpio_drv.h"
 
 /* ---------------------------------------------------------------------------
@@ -83,15 +83,6 @@ static void PutU32Be(uint8_t *dst, uint32_t value)
     dst[1] = (uint8_t)((value >> 16U) & 0xFFU);
     dst[2] = (uint8_t)((value >> 8U) & 0xFFU);
     dst[3] = (uint8_t)(value & 0xFFU);
-}
-
-/* Alive counter + CRC let the receiver detect lost, repeated or corrupted
- * frames end-to-end (the idea behind AUTOSAR E2E protection). */
-static void ProtectFrame(CanDrv_Frame_t *frame, uint8_t *aliveCounter)
-{
-    frame->data[E2E_ALIVE_COUNTER_BYTE] = (uint8_t)(*aliveCounter & E2E_ALIVE_COUNTER_MASK);
-    frame->data[E2E_CRC_BYTE] = Crc8_SaeJ1850(frame->data, E2E_CRC_BYTE);
-    *aliveCounter = (uint8_t)((*aliveCounter + 1U) & E2E_ALIVE_COUNTER_MASK);
 }
 
 static void FilterReset(uint16_t sample)
@@ -191,7 +182,9 @@ static void SendSpeedFrame(void)
     PutU16Be(&frame.data[0], speed);
     PutU16Be(&frame.data[2], s_adcFiltered);
     frame.data[4] = status;
-    ProtectFrame(&frame, &s_speedAlive);
+    /* Alive counter + CRC let the Control ECU detect lost, repeated or
+     * corrupted frames end-to-end (AUTOSAR E2E idea). */
+    E2e_Protect(frame.data, &s_speedAlive);
 
     (void)CanDrv_Write(&frame);   /* drops are counted in the driver stats */
 }
@@ -208,7 +201,7 @@ static void SendAliveFrame(void)
     frame.data[0] = (s_faultMode == FAULT_NONE) ? 0U : 1U;
     PutU32Be(&frame.data[1], s_tick / TICKS_PER_SECOND);
     frame.data[5] = (stats.busOffCount > 255U) ? 255U : (uint8_t)stats.busOffCount;
-    ProtectFrame(&frame, &s_aliveAlive);
+    E2e_Protect(frame.data, &s_aliveAlive);
 
     (void)CanDrv_Write(&frame);
 }
