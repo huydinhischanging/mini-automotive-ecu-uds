@@ -140,6 +140,8 @@ make          # needs gcc (Linux, or MSYS2 UCRT64 on Windows)
 
 ## Static analysis (cppcheck + MISRA C:2012)
 
+Run all host checks (unit tests + static analysis) in one go: `tools/check_all.sh`
+
 ```
 tools/static_analysis.sh      # cppcheck 2.x with the MISRA addon, exit 1 on findings
 ```
