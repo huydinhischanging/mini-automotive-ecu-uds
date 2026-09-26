@@ -114,7 +114,9 @@ static bool TxSendFirst(IsoTp_Link_t *link)
 
 static void TxSendConsecutiveFrames(IsoTp_Link_t *link)
 {
-    while (link->txState == ISOTP_TX_SEND_CF)
+    bool keepSending = true;
+
+    while (keepSending && (link->txState == ISOTP_TX_SEND_CF))
     {
         uint8_t  frame[ISOTP_CAN_DL];
         uint16_t remaining = (uint16_t)(link->txLength - link->txOffset);
@@ -125,7 +127,8 @@ static void TxSendConsecutiveFrames(IsoTp_Link_t *link)
          * the receiver always gets at least STmin between frames. */
         if ((link->txStMinMs > 0U) && (Elapsed(link, link->txLastCfTime) <= link->txStMinMs))
         {
-            break;
+            keepSending = false;
+            continue;
         }
 
         InitFrame(frame);
@@ -133,7 +136,8 @@ static void TxSendConsecutiveFrames(IsoTp_Link_t *link)
         (void)memcpy(&frame[1], &link->cfg.txBuffer[link->txOffset], chunk);
         if (!SendFrame(link, frame))
         {
-            break;   /* driver busy, try again next MainFunction */
+            keepSending = false;   /* driver busy, try again next MainFunction */
+            continue;
         }
 
         link->txOffset     = (uint16_t)(link->txOffset + chunk);
@@ -306,7 +310,7 @@ static void RxOnConsecutiveFrame(IsoTp_Link_t *link, const uint8_t *data, uint8_
 
     remaining = (uint16_t)(link->rxLength - link->rxOffset);
     chunk     = (remaining > CF_MAX_DATA) ? (uint16_t)CF_MAX_DATA : remaining;
-    if (chunk > (uint16_t)(dlc - 1U))
+    if (chunk > ((uint16_t)dlc - 1U))
     {
         return;   /* frame too short for the data it should carry */
     }

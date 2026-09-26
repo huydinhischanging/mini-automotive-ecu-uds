@@ -35,7 +35,7 @@
 #define DTC_STATUS_WIR      (0x80U)
 
 /** Status bits this implementation supports (reported by UDS 0x19). */
-#define DTC_STATUS_AVAILABILITY_MASK  (0x7FU)
+#define DTC_STATUS_AVAILABILITY_MASK  ((uint8_t)(0xFFU & ~DTC_STATUS_WIR))
 
 #define DTC_MAX_ENTRIES     (16U)
 

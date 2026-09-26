@@ -45,10 +45,7 @@ static void OldSourceGate(uint32_t source, volatile uint32_t **pllcr, uint32_t *
 
 uint32_t CanDrv_PrepareKernelClock(void)
 {
-    uint32_t           current = READ_BIT(RCC->FDCANCKSELR, RCC_FDCANCKSELR_FDCANSRC);
-    volatile uint32_t *pllcr;
-    uint32_t           diven;
-    bool               tempEnabled = false;
+    uint32_t current = READ_BIT(RCC->FDCANCKSELR, RCC_FDCANCKSELR_FDCANSRC);
 
     /* The HSE oscillator runs, but its output towards peripheral kernel clocks
      * is gated separately (HSEKERON) and Linux leaves it off because none of
@@ -57,6 +54,10 @@ uint32_t CanDrv_PrepareKernelClock(void)
 
     if (current != RCC_FDCANCLKSOURCE_HSE)
     {
+        volatile uint32_t *pllcr;
+        uint32_t           diven;
+        bool               tempEnabled = false;
+
         OldSourceGate(current, &pllcr, &diven);
         if ((pllcr != NULL) && (READ_BIT(*pllcr, diven) == 0U))
         {
@@ -172,10 +173,18 @@ CanDrv_Status_t CanDrv_Init(CanDrv_Mode_t mode, CanDrv_RxIndication_t rxIndicati
 CanDrv_Status_t CanDrv_Write(const CanDrv_Frame_t *frame)
 {
     FDCAN_TxHeaderTypeDef header = {0};
+    uint8_t               payload[CANDRV_MAX_DLC] = {0};
 
     if ((frame == NULL) || (frame->dlc > CANDRV_MAX_DLC) || (frame->id > CANDRV_MAX_STD_ID))
     {
         return CANDRV_ERROR;
+    }
+
+    /* The MP1 HAL takes a non-const data pointer; copy instead of casting
+     * const away (MISRA C:2012 rule 11.8). */
+    for (uint8_t i = 0U; i < frame->dlc; i++)
+    {
+        payload[i] = frame->data[i];
     }
 
     if (HAL_FDCAN_GetTxFifoFreeLevel(&hfdcan1) == 0U)
@@ -194,7 +203,7 @@ CanDrv_Status_t CanDrv_Write(const CanDrv_Frame_t *frame)
     header.TxEventFifoControl  = FDCAN_NO_TX_EVENTS;
     header.MessageMarker       = 0U;
 
-    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &header, (uint8_t *)frame->data) != HAL_OK)
+    if (HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &header, payload) != HAL_OK)
     {
         s_stats.txDropped++;
         return CANDRV_ERROR;
@@ -245,7 +254,6 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 {
     FDCAN_RxHeaderTypeDef header;
     CanDrv_Frame_t        frame;
-    uint32_t              dlc;
 
     if ((RxFifo0ITs & FDCAN_IT_RX_FIFO0_NEW_MESSAGE) == 0U)
     {
@@ -254,6 +262,8 @@ void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
 
     while (HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0) > 0U)
     {
+        uint32_t dlc;
+
         if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &header, frame.data) != HAL_OK)
         {
             break;

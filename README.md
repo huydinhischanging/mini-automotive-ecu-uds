@@ -138,6 +138,16 @@ cd tests
 make          # needs gcc (Linux, or MSYS2 UCRT64 on Windows)
 ```
 
+## Static analysis (cppcheck + MISRA C:2012)
+
+```
+tools/static_analysis.sh      # cppcheck 2.x with the MISRA addon, exit 1 on findings
+```
+
+All project code (`common/`, App and MCAL layers of both ECUs) passes with **no findings**.
+Nine rule violations were fixed in the code; the five remaining deviations are documented in
+[docs/misra_deviations.md](docs/misra_deviations.md).
+
 ## Milestones
 
 ### M1 — Sensor ECU bring-up (FDCAN internal loopback) ✅
@@ -243,4 +253,5 @@ Known open points:
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)
 - [ ] Python tester on Linux (SocketCAN)
 - [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
-- [ ] cppcheck MISRA checks, demo video
+- [x] cppcheck + MISRA C:2012 addon: no findings, deviations documented
+- [ ] Demo video

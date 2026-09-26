@@ -11,8 +11,11 @@ bool IoDrv_Init(void)
 {
     /* ARR = 1000 - 1 gives a duty resolution of 0.1 %, independent of the
      * timer clock Linux configured (only the PWM frequency depends on it). */
-    __HAL_TIM_SET_AUTORELOAD(&htim1, IODRV_PWM_MAX - 1U);
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 0U);
+    /* Direct register writes: the HAL setter macros use assignments inside
+     * expressions (MISRA C:2012 rule 13.4). */
+    htim1.Instance->ARR = IODRV_PWM_MAX - 1U;
+    htim1.Init.Period   = IODRV_PWM_MAX - 1U;
+    htim1.Instance->CCR2 = 0U;
 
     /* TIM1 is an advanced timer: HAL_TIM_PWM_Start also sets MOE, without
      * which the output stays disabled. */
@@ -26,9 +29,7 @@ bool IoDrv_IsUserButtonPressed(void)
 
 void IoDrv_SetPwm(uint16_t duty)
 {
-    if (duty > IODRV_PWM_MAX)
-    {
-        duty = IODRV_PWM_MAX;
-    }
-    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, duty);
+    uint16_t clamped = (duty > IODRV_PWM_MAX) ? (uint16_t)IODRV_PWM_MAX : duty;
+
+    htim1.Instance->CCR2 = clamped;
 }

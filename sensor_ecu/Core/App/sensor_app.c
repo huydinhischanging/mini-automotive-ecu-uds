@@ -139,8 +139,13 @@ static void HandleButton(void)
         else if (!s_btnLatched)
         {
             s_btnLatched = true;   /* one action per press */
-            s_faultMode  = (FaultMode_t)(((uint32_t)s_faultMode + 1U) % (uint32_t)FAULT_MODE_COUNT);
-            printf("[SENSOR] fault mode -> %u\r\n", (unsigned)s_faultMode);
+            switch (s_faultMode)
+            {
+                case FAULT_NONE:   s_faultMode = FAULT_SILENT;       break;
+                case FAULT_SILENT: s_faultMode = FAULT_OUT_OF_RANGE; break;
+                default:           s_faultMode = FAULT_NONE;         break;
+            }
+            (void)printf("[SENSOR] fault mode -> %u\r\n", (unsigned)s_faultMode);
         }
         else
         {
@@ -222,8 +227,8 @@ static void LogStatus(void)
     uint16_t speed = AdcToSpeedX10(s_adcFiltered);
 
     CanDrv_GetStats(&stats);
-    printf("[SENSOR] speed=%u.%u km/h adc=%u mode=%u | tx=%lu drop=%lu rx=%lu rx100=%lu busoff=%lu\r\n",
-           (unsigned)(speed / 10U), (unsigned)(speed % 10U), (unsigned)s_adcFiltered,
+    (void)printf("[SENSOR] speed=%u.%u km/h adc=%u mode=%u | tx=%lu drop=%lu rx=%lu rx100=%lu busoff=%lu\r\n",
+           (unsigned)speed / 10U, (unsigned)speed % 10U, (unsigned)s_adcFiltered,
            (unsigned)s_faultMode,
            (unsigned long)stats.txQueued, (unsigned long)stats.txDropped,
            (unsigned long)stats.rxCount, (unsigned long)s_rxSpeedFrames,
@@ -265,7 +270,7 @@ bool SensorApp_Init(void)
         return false;
     }
 
-    printf("\r\n[SENSOR] start, CAN %s, 500 kbit/s\r\n",
+    (void)printf("\r\n[SENSOR] start, CAN %s, 500 kbit/s\r\n",
            (SENSOR_APP_CAN_LOOPBACK != 0U) ? "INTERNAL LOOPBACK" : "NORMAL");
     return true;
 }

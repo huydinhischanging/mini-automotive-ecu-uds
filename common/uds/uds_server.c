@@ -93,10 +93,10 @@ static uint8_t SessionControl(Ctx_t *c)
     (void)Put(c, (uint8_t)(UDS_SID_DIAG_SESSION_CONTROL + UDS_POSITIVE_OFFSET));
     (void)Put(c, session);
     /* sessionParameterRecord: P2 in 1 ms, P2* in 10 ms resolution */
-    (void)Put(c, (uint8_t)(UDS_P2_SERVER_MS >> 8U));
-    (void)Put(c, (uint8_t)(UDS_P2_SERVER_MS & 0xFFU));
-    (void)Put(c, (uint8_t)((UDS_P2STAR_SERVER_MS / 10U) >> 8U));
-    (void)Put(c, (uint8_t)((UDS_P2STAR_SERVER_MS / 10U) & 0xFFU));
+    (void)Put(c, (uint8_t)((uint16_t)UDS_P2_SERVER_MS >> 8U));
+    (void)Put(c, (uint8_t)((uint16_t)UDS_P2_SERVER_MS & 0xFFU));
+    (void)Put(c, (uint8_t)((uint16_t)(UDS_P2STAR_SERVER_MS / 10U) >> 8U));
+    (void)Put(c, (uint8_t)((uint16_t)(UDS_P2STAR_SERVER_MS / 10U) & 0xFFU));
     return 0U;
 }
 
@@ -213,7 +213,7 @@ static uint8_t ReadDid(Ctx_t *c)
         {
             continue;   /* unknown DIDs are skipped; NRC only if none is known */
         }
-        if ((uint32_t)c->respLen + 2U + did->length > c->respMax)
+        if (((uint32_t)c->respLen + 2U + did->length) > c->respMax)
         {
             return UDS_NRC_RESPONSE_TOO_LONG;
         }

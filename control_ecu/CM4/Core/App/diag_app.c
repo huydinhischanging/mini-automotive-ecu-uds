@@ -203,27 +203,30 @@ static void OnTesterResponse(void *ctx, const uint8_t *data, uint16_t length, Is
     }
 }
 
+#define LOGHEX_MAX_BYTES    (24U)
+
 static void LogHex(const char *label, const uint8_t *data, uint16_t len)
 {
-    char     line[3U * 24U + 1U];
-    uint16_t n = (len > 24U) ? 24U : len;
     static const char hex[] = "0123456789ABCDEF";
+    char       line[(3U * LOGHEX_MAX_BYTES) + 1U];
+    const bool truncated = (len > LOGHEX_MAX_BYTES);
+    uint16_t   n = truncated ? (uint16_t)LOGHEX_MAX_BYTES : len;
 
     for (uint16_t i = 0U; i < n; i++)
     {
-        line[3U * i]      = hex[data[i] >> 4U];
-        line[3U * i + 1U] = hex[data[i] & 0x0FU];
-        line[3U * i + 2U] = ' ';
+        line[3U * i]        = hex[data[i] >> 4U];
+        line[(3U * i) + 1U] = hex[data[i] & 0x0FU];
+        line[(3U * i) + 2U] = ' ';
     }
     line[3U * n] = '\0';
-    ControlApp_Log("         %s %s%s\r\n", label, line, (len > n) ? "..." : "");
+    ControlApp_Log("         %s %s%s\r\n", label, line, truncated ? "..." : "");
 }
 
 static void FinishStep(bool pass)
 {
     const TestStep_t *st = &k_steps[s_stStep];
 
-    ControlApp_Log("[TEST] %2u/%u %-32s %s\r\n", (unsigned)(s_stStep + 1U), (unsigned)STEP_COUNT,
+    ControlApp_Log("[TEST] %2u/%u %-32s %s\r\n", (unsigned)s_stStep + 1U, (unsigned)STEP_COUNT,
                    st->name, pass ? "PASS" : "FAIL");
     if (!pass)
     {

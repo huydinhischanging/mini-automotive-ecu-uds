@@ -1,0 +1,29 @@
+// MISRA C:2012 deviations of this project. Rationale: docs/misra_deviations.md
+// Format: cppcheck --suppressions-list. Every entry is scoped as narrowly as possible.
+
+// D1 - Rule 15.5 (advisory), single point of exit: early returns for parameter checks.
+misra-c2012-15.5
+
+// D2 - Rule 8.7 (advisory) and 2.5 (advisory) for the public interfaces of common/:
+// API functions and constants are used by the firmware, which is a separate analysis unit.
+misra-c2012-8.7
+misra-c2012-2.5:*common/*
+
+// D3 - Rule 8.9 (advisory): module state kept at file scope on purpose, so that it can be
+// located by symbol name and inspected from Linux (/dev/mem) or a debugger.
+misra-c2012-8.9
+
+// D4 - Rule 11.4 (advisory): peripheral access through CMSIS base-address macros.
+// Confined to the MCAL layer, which is the only layer allowed to touch hardware.
+misra-c2012-11.4:*/Core/Mcal/*
+
+// D5 - Rules 21.6 and 17.1 (required): printf/vprintf and <stdarg.h> for the debug log.
+// Application layer only, never on a control or communication path.
+misra-c2012-21.6:*/Core/App/*
+misra-c2012-17.1:*/Core/App/*
+
+// Not project code: STM32Cube HAL, CMSIS, FreeRTOS and STM32CubeMX-generated headers.
+*:*/Drivers/*
+*:*/Middlewares/*
+*:*/Core/Inc/*
+missingIncludeSystem

@@ -52,5 +52,5 @@ Internal loopback validates a large part of the design: the controller configura
   \item DTCs are kept in RAM only (no non-volatile storage, no aging).
   \item The HAL tick of the M4 runs at about twice the intended rate in production mode.
   \item The FDCAN clock is reconfigured by the M4 rather than by the Linux device tree.
-  \item Static analysis (cppcheck with MISRA rules) has not been run yet, and the firmware has not been measured for worst-case execution time or interrupt latency.
+  \item MISRA compliance is checked with the rule subset that cppcheck can decide; there is no certified checker and no manual review of the undecidable rules. The firmware has not been measured for worst-case execution time or interrupt latency.
 \end{itemize}

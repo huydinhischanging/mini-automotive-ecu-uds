@@ -206,6 +206,37 @@ whole run & 110 frames/s, no frame dropped & 100 frames/s, 0 CRC, lost or repeat
 
 The timeout was reported one log line (100\,ms resolution) after the Sensor ECU changed mode, consistent with the 100\,ms timeout threshold. The DTC count stayed at three after all faults had healed: confirmed DTCs are kept until a tester clears them, as ISO~14229 requires. One of the three, U0400-81, was stored when the bus first came up: the Sensor ECU flushed three stale frames from its transmit FIFO with old alive counters, and the E2E check correctly classified them as out of sequence.
 
+\section{Static Analysis}
+
+All project-owned code (the portable modules in \texttt{common/} and the application and MCAL layers of both ECUs) was analysed with cppcheck~2.21 and its MISRA C:2012 addon, using the real HAL, CMSIS and FreeRTOS headers for type information; vendor code and STM32CubeMX-generated headers are parsed but not reported. The script \texttt{tools/static\_analysis.sh} makes the check reproducible and fails on any finding.
+
+A first attempt reported many violations of rule 17.3 (implicit function declaration) and \textit{incomplete configuration} messages. They were an artefact of the setup: the CMSIS headers stop with \texttt{\#error Unknown compiler} unless the target compiler macros are defined, which silently hid every HAL declaration. After defining the GCC/ARM macros and adding the CMSIS-RTOS2 include path, the analysis saw the real types. Table~\ref{tab:misra} summarises how the remaining findings were handled.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Handling of the static-analysis findings}
+\label{tab:misra}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Rule} & \textbf{Category} & \textbf{Resolution} \\
+\midrule
+12.2 & Required & fixed: 8-bit constant shifted by 8 in the UDS server, cast to 16 bit first \\
+10.8 & Required & fixed: composite expressions cast to a wider type (ISO-TP and both applications) \\
+17.7 & Required & fixed: unused return values of logging and mutex calls cast to \texttt{void} \\
+11.8 & Required & fixed: \texttt{const} no longer cast away for the MP1 HAL transmit call (payload copied) \\
+13.4, 17.8, 12.1, 15.4, 2.5 & Advisory & fixed: HAL macros replaced by register writes, parameter no longer modified, parentheses, single loop exit flag, unused macro used \\
+15.5 & Advisory & deviation D1: early return for parameter checks \\
+8.7, 2.5 & Advisory & deviation D2: public APIs of \texttt{common/} used by a separate analysis unit \\
+8.9 & Advisory & deviation D3: file-scope module state, inspectable by symbol from Linux \\
+11.4 & Advisory & deviation D4: CMSIS register access, MCAL layer only \\
+21.6, 17.1 & Required & deviation D5: \texttt{printf}/\texttt{vprintf} debug log, application layer only \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+After these changes the analysis reports no findings. All unit tests still pass, and both firmwares were rebuilt and re-verified on the physical bus (100 frames/s, no E2E error). The deviation records are kept in \texttt{docs/misra\_deviations.md}. The cppcheck addon covers the automatically decidable rules only; it is not a certified checker and does not replace a review.
+
 \section{Bring-up of the Control ECU}
 \label{sec:bringup}
 

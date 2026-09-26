@@ -143,7 +143,7 @@ static void HandleSpeedFrame(const CanDrv_Frame_t *frame)
 {
     E2e_Status_t status = E2e_Check(&s_e2eSpeed, frame->data, frame->dlc);
 
-    osMutexAcquire(s_viewMutex, osWaitForever);
+    (void)osMutexAcquire(s_viewMutex, osWaitForever);
     CountE2e(&s_view.e2e, status);
 
     if (E2e_IsValid(status))
@@ -167,7 +167,7 @@ static void HandleSpeedFrame(const CanDrv_Frame_t *frame)
         s_view.e2eError   = true;   /* data discarded, output keeps last good value */
         s_view.goodStreak = 0U;
     }
-    osMutexRelease(s_viewMutex);
+    (void)osMutexRelease(s_viewMutex);
 }
 
 static void ComRxTask(void *argument)
@@ -192,18 +192,18 @@ static void ComRxTask(void *argument)
 
             case CANID_SENSOR_ALIVE:
                 (void)E2e_Check(&s_e2eAlive, frame.data, frame.dlc);
-                osMutexAcquire(s_viewMutex, osWaitForever);
+                (void)osMutexAcquire(s_viewMutex, osWaitForever);
                 s_view.aliveFrames++;
-                osMutexRelease(s_viewMutex);
+                (void)osMutexRelease(s_viewMutex);
                 break;
 
             case CANID_UDS_REQ_CONTROL:
             case 0x7DFU:
             case CANID_UDS_RESP_CONTROL:
                 DiagApp_OnFrame(&frame);
-                osMutexAcquire(s_viewMutex, osWaitForever);
+                (void)osMutexAcquire(s_viewMutex, osWaitForever);
                 s_view.udsRequests++;
-                osMutexRelease(s_viewMutex);
+                (void)osMutexRelease(s_viewMutex);
                 break;
 
             default:
@@ -266,8 +266,8 @@ static void LogStatus(const SensorView_t *v, uint32_t ageMs, uint16_t duty)
 
     ControlApp_Log("[CTRL] speed=%u.%u km/h age=%lums pwm=%u.%u%% | e2e ok=%lu lost=%lu crc=%lu rep=%lu seq=%lu"
            " | faults=0x%02lx dtc=%u | rx=%lu tx=%lu busoff=%lu qovf=%lu uds=%lu heap=%u\r\n",
-           (unsigned)(v->speedX10 / 10U), (unsigned)(v->speedX10 % 10U),
-           (unsigned long)ageMs, (unsigned)(duty / 10U), (unsigned)(duty % 10U),
+           (unsigned)v->speedX10 / 10U, (unsigned)v->speedX10 % 10U,
+           (unsigned long)ageMs, (unsigned)duty / 10U, (unsigned)duty % 10U,
            (unsigned long)v->e2e.ok, (unsigned long)v->e2e.lost, (unsigned long)v->e2e.crc,
            (unsigned long)v->e2e.repeated, (unsigned long)v->e2e.wrongSeq,
            (unsigned long)mask, (unsigned)DiagApp_ConfirmedDtcCount(), (unsigned long)bus.rxCount, (unsigned long)bus.txQueued,
@@ -330,9 +330,9 @@ static void MonitorTask(void *argument)
         SendFakeSensorFrame();
 #endif
 
-        osMutexAcquire(s_viewMutex, osWaitForever);
+        (void)osMutexAcquire(s_viewMutex, osWaitForever);
         view = s_view;
-        osMutexRelease(s_viewMutex);
+        (void)osMutexRelease(s_viewMutex);
 
         now   = osKernelGetTickCount();
         ageMs = view.received ? (now - view.lastValidTick) : (now - s_startTick);
@@ -393,38 +393,38 @@ bool ControlApp_Init(void)
     s_logMutex  = osMutexNew(NULL);
     if ((s_rxQueue == NULL) || (s_viewMutex == NULL) || (s_txMutex == NULL) || (s_logMutex == NULL))
     {
-        printf("[CTRL] RTOS object creation failed (heap too small?)\r\n");
+        (void)printf("[CTRL] RTOS object creation failed (heap too small?)\r\n");
         return false;
     }
 
     if (!IoDrv_Init())
     {
-        printf("[CTRL] PWM init failed\r\n");
+        (void)printf("[CTRL] PWM init failed\r\n");
         return false;
     }
 
     if (CanDrv_Init(mode, OnCanRx, k_filters,
                     (uint8_t)(sizeof(k_filters) / sizeof(k_filters[0]))) != CANDRV_OK)
     {
-        printf("[CTRL] CAN init failed\r\n");
+        (void)printf("[CTRL] CAN init failed\r\n");
         return false;
     }
 
     if (!DiagApp_Init(CONTROL_APP_CAN_LOOPBACK != 0U))
     {
-        printf("[CTRL] diagnostics init failed\r\n");
+        (void)printf("[CTRL] diagnostics init failed\r\n");
         return false;
     }
 
     if ((osThreadNew(ComRxTask, NULL, &k_comRxAttr) == NULL) ||
         (osThreadNew(MonitorTask, NULL, &k_monitorAttr) == NULL))
     {
-        printf("[CTRL] task creation failed (heap too small?)\r\n");
+        (void)printf("[CTRL] task creation failed (heap too small?)\r\n");
         return false;
     }
 
     CanDrv_GetStats(&bus);
-    printf("[CTRL] start, CAN %s, FDCAN clock %lu Hz, heap free %u\r\n",
+    (void)printf("[CTRL] start, CAN %s, FDCAN clock %lu Hz, heap free %u\r\n",
            (CONTROL_APP_CAN_LOOPBACK != 0U) ? "INTERNAL LOOPBACK" : "NORMAL",
            (unsigned long)bus.kernelClockHz, (unsigned)xPortGetFreeHeapSize());
     return true;
