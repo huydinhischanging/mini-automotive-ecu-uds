@@ -146,6 +146,66 @@ Hard reset (0x11 01) & cannot be exercised by a tester running on the same core 
 \end{tabularx}
 \end{table}
 
+\section{Milestone M4: Two-Node Bus with Fault Injection}
+
+\subsection{Wiring}
+
+Table~\ref{tab:wiring} lists the verified connections. Each transceiver module carries a 120\,$\Omega$ terminator, so the bus measures about 60\,$\Omega$ between CANH and CANL; both boards share a common ground.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Verified bus wiring}
+\label{tab:wiring}
+\begin{tabularx}{\textwidth}{@{}lXlX@{}}
+\toprule
+\textbf{Signal} & \textbf{NUCLEO-G431RB} & \textbf{SN65HVD230} & \textbf{STM32MP157D-DK1} \\
+\midrule
+FDCAN1\_TX & PA12, CN10 pin 12 & CTX & PA12, CN13 pin 9 (Arduino D14) \\
+FDCAN1\_RX & PA11, CN10 pin 14 & CRX & PA11, CN13 pin 10 (Arduino D15) \\
+Supply & 3V3 / GND (CN6) & 3V3 / GND & CN16 pin 4 / pin 6 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Diagnosing the bus bring-up}
+
+The first power-up on the bus did not work, and the fault was located without an oscilloscope by reading the FDCAN status registers of both nodes (the Nucleo through the ST-LINK in hot-plug mode, the DK1 from Linux). The last error code (LEC) of the protocol status register was the key observable:
+
+\begin{enumerate}[nosep]
+  \item The Sensor ECU reported LEC\,=\,3 (\textit{acknowledge error}) with its transmit error counter at 128. A node only reaches the acknowledge slot if it has read back every bit it sent, so the path Nucleo\,$\rightarrow$\,transceiver\,$\rightarrow$\,bus\,$\rightarrow$\,transceiver\,$\rightarrow$\,Nucleo was proven; only an acknowledging receiver was missing.
+  \item On the DK1 the receive pin PA11, sampled 50\,000 times per second from Linux, never went low while the Nucleo was retransmitting: no signal reached the DK1.
+  \item Swapping the two transceiver modules on the Nucleo reproduced LEC\,=\,3 with the second module as well, so both modules were good and the fault was on the DK1 side. The DK1 wires were moved to the documented header pins (CN13 pins 9 and 10).
+  \item A cyclic status frame (0x200) was added to the Control ECU so that it also transmits. The DK1 then reported LEC\,=\,3 too: each node read back its own frames, but neither received the other, which located the fault in the link between the two modules; the CANH/CANL wires had been removed during module testing.
+  \item After reconnecting, both nodes reported LEC\,=\,5 (\textit{bit-0 error}) and cycled through bus-off. To separate a polarity error from other causes, the DK1 controller was switched to bus-monitoring (listen-only) mode from Linux: it received the Sensor ECU frames with valid E2E checks, which proved the polarity correct. With stable connections the bus then ran without errors.
+\end{enumerate}
+
+During this phase the Sensor ECU went through several hundred bus-off events and recovered from each automatically, which exercises requirement R8 on real hardware.
+
+\subsection{Fault injection test}
+
+Both logs were captured simultaneously for 65\,s while the potentiometer was swept and button B1 of the Sensor ECU was used to inject faults. Table~\ref{tab:m4} summarises the run; the complete logs are in \texttt{docs/logs/}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Milestone M4: fault injection over the physical bus}
+\label{tab:m4}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Time} & \textbf{Sensor ECU} & \textbf{Control ECU} \\
+\midrule
+23--33\,s & potentiometer sweep, 142--233\,km/h & received speed and PWM follow \\
+39.7\,s & B1: SILENT, frame 0x100 stopped & 39.8\,s: SPEED\_TIMEOUT set, PWM 0\,\%, DTC U0100-87 confirmed \\
+46.7\,s & B1: OUT\_OF\_RANGE, 300.0\,km/h sent & timeout cleared, SPEED\_RANGE set, PWM 0\,\%, DTC P0501-00 confirmed \\
+55.6\,s & B1: back to normal & SPEED\_RANGE cleared, PWM 64.5\,\% again; confirmed DTCs retained \\
+whole run & 110 frames/s, no frame dropped & 100 frames/s, 0 CRC, lost or repeated errors, 0 bus-off, 0 queue overflows \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The timeout was reported one log line (100\,ms resolution) after the Sensor ECU changed mode, consistent with the 100\,ms timeout threshold. The DTC count stayed at three after all faults had healed: confirmed DTCs are kept until a tester clears them, as ISO~14229 requires. One of the three, U0400-81, was stored when the bus first came up: the Sensor ECU flushed three stale frames from its transmit FIFO with old alive counters, and the E2E check correctly classified them as out of sequence.
+
 \section{Bring-up of the Control ECU}
 \label{sec:bringup}
 

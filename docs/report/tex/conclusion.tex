@@ -3,14 +3,14 @@
 
 \section{Conclusion}
 
-This report presented the design of a miniature automotive ECU network and the completion of its first three milestones. A Sensor ECU on an STM32G431 publishes an end-to-end protected speed signal at 500\,kbit/s with the designed timing, and a Control ECU on the Cortex-M4 of an STM32MP157 receives it under FreeRTOS, checks it, supervises it for faults and drives a safe-state output. The protocol and service layers are portable and backed by 56 passing unit tests, including a full-length ISO-TP transfer. Both ECUs were verified on hardware in internal loopback with zero communication errors over tens of thousands of frames, and the Control ECU answers UDS requests, turns monitor results into DTCs with ISO~14229 status bits and lets a tester read and clear them, as shown by a 14-step on-target test.
+This report presented the design of a miniature automotive ECU network and the completion of its first four milestones. A Sensor ECU on an STM32G431 publishes an end-to-end protected speed signal at 500\,kbit/s with the designed timing, and a Control ECU on the Cortex-M4 of an STM32MP157 receives it under FreeRTOS, checks it, supervises it for faults and drives a safe-state output. The protocol and service layers are portable and backed by 56 passing unit tests, including a full-length ISO-TP transfer. Both ECUs were verified on hardware in internal loopback with zero communication errors over tens of thousands of frames, and the Control ECU answers UDS requests, turns monitor results into DTCs with ISO~14229 status bits and lets a tester read and clear them, as shown by a 14-step on-target test. On the physical two-node bus, injected faults propagated from the Sensor ECU through CAN to the Control ECU, which reacted within its timing requirements and stored the expected DTCs.
 
 The most instructive part of the work was the bring-up of the Control ECU on a heterogeneous SoC, where two defects outside the application code, a missing interrupt handler in generated code and a clock multiplexer blocked by the clock state left by Linux, were located by reading the running firmware's memory and registers from Linux and were fixed in a way that survives code regeneration and a cold boot.
 
 \section{Future Work}
 
 \begin{enumerate}
-  \item \textbf{M4 -- physical bus.} Connect both ECUs through SN65HVD230 transceivers with 120\,$\Omega$ termination at both ends, verify the 60\,$\Omega$ bus resistance, and measure bit time and sample point with a logic analyser. Exercise fault injection, timeout and bus-off recovery on the real bus.
+  \item \textbf{Bus measurement.} Capture the bus with a logic analyser to measure the bit time and sample point of both nodes.
   \item \textbf{DTC persistence.} Keep DTCs across power cycles (the M4 has no flash; storage through Linux or an external EEPROM) and add aging of confirmed DTCs.
   \item \textbf{Hard reset.} Verify UDS 0x11 01 with an external tester and check how Linux \texttt{remoteproc} reacts to a self-reset of the M4.
   \item \textbf{Tester.} A Python UDS client on Linux using SocketCAN, either through a USB-CAN adapter or the second FDCAN controller of the STM32MP157.

@@ -112,6 +112,7 @@ Table~\ref{tab:canmatrix} lists the identifiers. The byte layout is defined once
 \midrule
 0x100 & SENSOR\_SPEED & Sensor ECU & 10\,ms & speed (0.1\,km/h), raw ADC, status, alive counter, CRC-8 \\
 0x101 & SENSOR\_ALIVE & Sensor ECU & 100\,ms & node state, uptime, bus-off count, alive counter, CRC-8 \\
+0x200 & CONTROL\_STATUS & Control ECU & 100\,ms & active faults, confirmed DTC count, output duty, alive counter, CRC-8 \\
 0x7E0 & UDS request & tester & event & ISO-TP, physical addressing to the Control ECU \\
 0x7E8 & UDS response & Control ECU & event & ISO-TP response \\
 \bottomrule
@@ -291,7 +292,7 @@ Verification proceeds bottom-up:
 \begin{enumerate}[nosep]
   \item \textbf{Unit tests on a PC} for all hardware-independent modules, using a fake CAN driver and a fake clock. Compiled with \texttt{-Wall -Wextra -Wpedantic -Wshadow -Wconversion}.
   \item \textbf{FDCAN internal loopback} on each ECU, which exercises bit-timing configuration, filters, interrupts and the full software path without a transceiver.
-  \item \textbf{Two-node bus} with transceivers, checked with a logic analyser (next milestone).
+  \item \textbf{Two-node bus} with transceivers and fault injection (M4); a logic-analyser capture is planned.
   \item \textbf{On-target UDS self-test} in loopback (M3), then \textbf{system test} with an external tester on the physical bus.
 \end{enumerate}
 Each hardware test records the UART log as evidence, together with a pass criterion defined before the run.

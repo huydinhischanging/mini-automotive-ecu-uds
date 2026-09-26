@@ -191,6 +191,24 @@ A second ISO-TP link on the M4 plays the tester (TX 0x7E0, RX 0x7E8, BS 2, STmin
 
 Sensor data kept flowing during the test with 0 E2E errors and 0 queue overflows.
 
+### M4 — Two-node CAN bus with fault injection ✅
+
+NUCLEO-G431RB and STM32MP157D-DK1 on a real bus through two SN65HVD230 transceivers.
+65 s capture of both ECUs, logs: [sensor](docs/logs/m4_bus_fault_injection_sensor.log),
+[control](docs/logs/m4_bus_fault_injection_control.log)
+
+| Time | Sensor ECU | Control ECU |
+|---|---|---|
+| 23–33 s | potentiometer sweep 142–233 km/h | speed and PWM follow |
+| 39.7 s | B1 → `SILENT` (0x100 stopped) | 39.8 s `SPEED_TIMEOUT SET`, PWM 0 %, DTC U0100-87 |
+| 46.7 s | B1 → `OUT_OF_RANGE` (300 km/h) | `SPEED_TIMEOUT cleared`, `SPEED_RANGE SET`, PWM 0 %, DTC P0501-00 |
+| 55.6 s | B1 → normal | `SPEED_RANGE cleared`, PWM back to 64.5 %, DTCs retained |
+| whole run | no dropped frame | 0 CRC / lost / repeated errors, 0 bus-off, 0 queue overflows |
+
+Bring-up of the bus was diagnosed from the FDCAN error registers of both nodes: each node reading
+back its own frames (LEC = ACK error) proved the MCU-transceiver wiring on each side, and putting the
+DK1 into bus-monitoring (listen-only) mode proved that the bus polarity was correct.
+
 ## Bring-up notes (STM32MP157 Cortex-M4)
 
 Issues found while bringing up the Control ECU in production mode (Linux on the A7
@@ -217,8 +235,9 @@ Known open points:
 - [x] Control ECU: M4 firmware on OpenSTLinux (remoteproc), FDCAN owned by M4, FreeRTOS tasks,
       E2E check, timeout/range faults, safe-state PWM — verified in FDCAN internal loopback
 - [x] M3: UDS server + DTC manager on the Control ECU, 14/14 on-target UDS self-test in loopback
-- [x] M4 (in progress): two-node bus running — 100 frames/s Sensor -> Control with 0 E2E errors, 0x200 status back to the Sensor ECU
-- [ ] M4: fault injection over the real bus, logic analyzer capture
+- [x] M4: two-node bus, 100 frames/s with 0 E2E errors, 0x200 status back to the Sensor ECU, fault injection -> DTCs
+- [ ] Logic analyzer capture of bit timing on the bus
+- [ ] External UDS tester on the bus (and hard reset test)
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)

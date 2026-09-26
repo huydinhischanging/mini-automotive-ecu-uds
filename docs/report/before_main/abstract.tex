@@ -1,7 +1,7 @@
 \chapter*{ABSTRACT}
 \addcontentsline{toc}{chapter}{ABSTRACT}
 
-This report describes the design and the first three milestones of a scaled-down in-vehicle network built from low-cost development boards. A \textit{Sensor ECU} on an STM32G431 (NUCLEO-G431RB) samples a potentiometer that emulates vehicle speed and publishes it on a 500\,kbit/s classic CAN bus every 10\,ms. A \textit{Control ECU} runs FreeRTOS on the Cortex-M4 core of an STM32MP157D (STM32MP157D-DK1), next to Linux on the Cortex-A7 cores, and consumes the signal, monitors it for faults and drives a PWM output. A diagnostic tester using UDS (ISO~14229) over ISO-TP (ISO~15765-2) completes the target architecture.
+This report describes the design and the first four milestones of a scaled-down in-vehicle network built from low-cost development boards. A \textit{Sensor ECU} on an STM32G431 (NUCLEO-G431RB) samples a potentiometer that emulates vehicle speed and publishes it on a 500\,kbit/s classic CAN bus every 10\,ms. A \textit{Control ECU} runs FreeRTOS on the Cortex-M4 core of an STM32MP157D (STM32MP157D-DK1), next to Linux on the Cortex-A7 cores, and consumes the signal, monitors it for faults and drives a PWM output. A diagnostic tester using UDS (ISO~14229) over ISO-TP (ISO~15765-2) completes the target architecture.
 
 The software follows an AUTOSAR-inspired layering in which only the MCAL layer touches the vendor HAL. Protocol and service modules (ISO-TP, end-to-end protection with an alive counter and CRC-8 SAE-J1850, a UDS server and a DTC manager with ISO~14229 status bits) are written in portable C and are tested on a PC with a small test harness: 56 unit tests with 277 checks pass, including a 4095-byte ISO-TP transfer between two protocol instances.
 
@@ -9,7 +9,7 @@ Both ECUs were verified on hardware in FDCAN internal loopback. The Sensor ECU s
 
 The diagnostic stack was then integrated on the Control ECU: monitor results become DTCs, and a tester running on the same Cortex-M4 exchanged 14 UDS requests with the ECU over the CAN controller, covering segmented ISO-TP transfers in both directions, negative responses, session handling and reading and clearing a confirmed DTC; all 14 passed on hardware.
 
-The remaining milestones are the physical two-node bus and a Python tester on Linux.
+Finally, both ECUs were connected through SN65HVD230 transceivers. On the physical bus the Control ECU received 100 frames/s with zero end-to-end errors and no bus-off, detected an injected loss of the speed signal within about 100\,ms and an out-of-range value immediately, drove its output to the safe state and stored the corresponding DTCs, which remained stored after the faults healed. The remaining work is an external tester on Linux and a logic-analyser measurement of the bus timing.
 
 \bigskip
 \noindent\textbf{Keywords:} Controller Area Network, ISO-TP, UDS, DTC, AUTOSAR E2E, STM32MP157, FreeRTOS, embedded C, unit testing.

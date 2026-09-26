@@ -14,21 +14,21 @@ Table~\ref{tab:reqeval} maps the results of Chapter~\ref{ch:results} to the requ
 \toprule
 \textbf{ID} & \textbf{Evidence} & \textbf{Status} \\
 \midrule
-R1 & Bit timing configured and confirmed in registers on both ECUs; exchange between the two nodes not yet tested & partly met \\
+R1 & Different kernel clocks and time-quanta counts on the two nodes; error-free exchange at 500\,kbit/s on the physical bus (M4) & met \\
 R2 & M1: 100 + 10 frames per second & met \\
 R3 & E2E unit tests; M2: 30\,900 frames checked & met \\
-R4 & Timeout set at start-up and cleared by data (M2); range and E2E detection implemented, not yet injected on hardware & partly met \\
-R5 & Implemented on both ECUs; not yet exercised on hardware & open \\
+R4 & M4: timeout detected within about 100\,ms and out-of-range immediately, output forced to 0\,\%; E2E detection shown with stale frames & met \\
+R5 & Sensor ECU button B1 over the bus (M4); Control ECU local fault through the M3 self-test & met \\
 R6 & UDS over ISO-TP on 0x7E0/0x7E8 with NRCs: 22 unit tests and 14/14 on-target self-test (loopback); hard reset not yet exercised & met (loopback) \\
 R7 & Only MCAL files include the HAL; 34 PC unit tests on the shared modules & met \\
-R8 & Implemented on both ECUs; requires a physical bus to provoke bus-off & open \\
+R8 & Hundreds of bus-off events during bus bring-up, each recovered automatically & met \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \section{What Loopback Tests Do and Do Not Prove}
 
-Internal loopback validates a large part of the design: the controller configuration, the acceptance filters, the interrupt path, the frame packing, the E2E protection and the application logic. It does not validate the physical layer. In internal loopback the controller acknowledges its own frames, so an error in the transceiver wiring, the termination, or a mismatch in bit timing between the two nodes would stay invisible. The two ECUs deliberately use different kernel clocks and different numbers of time quanta; whether they interoperate is exactly what milestone M3 must show, preferably with a logic analyser measuring the bit time and the sample point on the bus.
+Internal loopback validates a large part of the design: the controller configuration, the acceptance filters, the interrupt path, the frame packing, the E2E protection and the application logic. It does not validate the physical layer. In internal loopback the controller acknowledges its own frames, so an error in the transceiver wiring, the termination, or a mismatch in bit timing between the two nodes would stay invisible. The two ECUs deliberately use different kernel clocks and different numbers of time quanta; whether they interoperate is what milestone M4 then showed on the physical bus; a logic-analyser measurement of the bit time and sample point would complete the picture.
 
 \section{Lessons Learned}
 
@@ -38,6 +38,8 @@ Internal loopback validates a large part of the design: the controller configura
 
 \paragraph{Testing the integration, not only the units.} The unit tests showed that the UDS server and the DTC manager behave as specified in isolation. The on-target self-test added what they cannot show: that ISO-TP runs correctly from an RTOS task fed by an interrupt queue, that two tasks can share the CAN transmitter, and that a fault detected by the monitor is visible over UDS with the right status bits. Running the tester on the ECU itself made this possible before a second node exists.
 
+\paragraph{Error counters as a measuring instrument.} Without an oscilloscope, the CAN controller itself was the most informative instrument during the bus bring-up. An acknowledge error proves that a node reads back its own bits, a bit-0 error that the bus does not become dominant, and listen-only mode separates receiving from transmitting. Swapping modules between known-good positions then isolated each segment of the chain in a few minutes.
+
 \paragraph{Debugging without a debugger.} Reading M4 memory and peripheral registers from Linux through \texttt{/dev/mem}, guided by symbol addresses from the ELF file, proved to be an effective technique on this platform, and it also allowed hypotheses to be tested by writing registers (for example enabling PLL4\_R to confirm the multiplexer theory) before changing any firmware.
 
 \paragraph{Evidence before conclusions.} Several intermediate hypotheses during bring-up were wrong: USB cables and adapters were suspected while simply re-seating the connectors resolved the connection problems, the clock calibration unit was suspected but found in bypass, and the role of the HSE kernel-clock gate could not be isolated because its disable register is secure-only. Recording which observations support each conclusion (Section~\ref{sec:bringup}) keeps the report honest about what was actually proven.
@@ -45,7 +47,7 @@ Internal loopback validates a large part of the design: the controller configura
 \section{Limitations}
 
 \begin{itemize}
-  \item No two-node bus test yet; all hardware results are from internal loopback.
+  \item The bit timing on the bus has not been measured with a logic analyser; correctness is inferred from error-free operation.
   \item Diagnostics are verified only against a tester on the same core; an external tester on a physical bus is still missing, and the hard reset has not been exercised.
   \item DTCs are kept in RAM only (no non-volatile storage, no aging).
   \item The HAL tick of the M4 runs at about twice the intended rate in production mode.

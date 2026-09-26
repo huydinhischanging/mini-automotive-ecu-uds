@@ -1,0 +1,77 @@
+# Two-node CAN bus, fault injection test (M4), 2026-09-26
+# Sensor ECU: NUCLEO-G431RB  (log on ST-LINK VCP)   Control ECU: STM32MP157D-DK1 Cortex-M4 (log on UART7)
+# 0-33 s potentiometer sweep; B1 presses: 33.4/34.3/34.7 s (quick) and 39.7/46.7/55.6 s (slow)
+# Timestamps: seconds since start of capture (both logs captured simultaneously, 100 ms resolution)
+   0.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=81799 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=89980 tx=8180 busoff=0 qovf=0 uds=0 heap=9744
+   1.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=81899 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90090 tx=8190 busoff=0 qovf=0 uds=0 heap=9744
+   2.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=81999 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90200 tx=8200 busoff=0 qovf=0 uds=0 heap=9744
+   3.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82099 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90310 tx=8210 busoff=0 qovf=0 uds=0 heap=9744
+   4.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82199 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90420 tx=8220 busoff=0 qovf=0 uds=0 heap=9744
+   5.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82299 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90530 tx=8230 busoff=0 qovf=0 uds=0 heap=9744
+   6.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82399 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90640 tx=8240 busoff=0 qovf=0 uds=0 heap=9744
+   7.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82499 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90750 tx=8250 busoff=0 qovf=0 uds=0 heap=9744
+   8.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82599 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90860 tx=8260 busoff=0 qovf=0 uds=0 heap=9744
+   9.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82699 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=90970 tx=8270 busoff=0 qovf=0 uds=0 heap=9744
+  10.6s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82799 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91080 tx=8280 busoff=0 qovf=0 uds=0 heap=9744
+  11.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82899 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91190 tx=8290 busoff=0 qovf=0 uds=0 heap=9744
+  12.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=82999 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91300 tx=8300 busoff=0 qovf=0 uds=0 heap=9744
+  13.5s [CTRL] speed=250.0 km/h age=2ms pwm=100.0% | e2e ok=83099 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91410 tx=8310 busoff=0 qovf=0 uds=0 heap=9744
+  14.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83199 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91520 tx=8320 busoff=0 qovf=0 uds=0 heap=9744
+  15.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83299 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91630 tx=8330 busoff=0 qovf=0 uds=0 heap=9744
+  16.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83399 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91740 tx=8340 busoff=0 qovf=0 uds=0 heap=9744
+  17.5s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83499 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91850 tx=8350 busoff=0 qovf=0 uds=0 heap=9744
+  18.5s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83599 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=91960 tx=8360 busoff=0 qovf=0 uds=0 heap=9744
+  19.5s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83699 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92070 tx=8370 busoff=0 qovf=0 uds=0 heap=9744
+  20.5s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83799 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92180 tx=8380 busoff=0 qovf=0 uds=0 heap=9744
+  21.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83899 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92290 tx=8390 busoff=0 qovf=0 uds=0 heap=9744
+  22.5s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=83999 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92400 tx=8400 busoff=0 qovf=0 uds=0 heap=9744
+  23.5s [CTRL] speed=236.7 km/h age=1ms pwm=94.6% | e2e ok=84099 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92510 tx=8410 busoff=0 qovf=0 uds=0 heap=9744
+  24.5s [CTRL] speed=156.8 km/h age=1ms pwm=62.7% | e2e ok=84199 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92620 tx=8420 busoff=0 qovf=0 uds=0 heap=9744
+  25.6s [CTRL] speed=197.2 km/h age=1ms pwm=78.8% | e2e ok=84299 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92730 tx=8430 busoff=0 qovf=0 uds=0 heap=9744
+  26.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=84399 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92840 tx=8440 busoff=0 qovf=0 uds=0 heap=9744
+  27.6s [CTRL] speed=176.1 km/h age=1ms pwm=70.4% | e2e ok=84499 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=92950 tx=8450 busoff=0 qovf=0 uds=0 heap=9744
+  28.6s [CTRL] speed=128.4 km/h age=1ms pwm=51.3% | e2e ok=84599 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=93060 tx=8460 busoff=0 qovf=0 uds=0 heap=9744
+  29.6s [CTRL] speed=186.3 km/h age=1ms pwm=74.5% | e2e ok=84699 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=93170 tx=8470 busoff=0 qovf=0 uds=0 heap=9744
+  30.6s [CTRL] speed=249.0 km/h age=1ms pwm=99.6% | e2e ok=84799 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=93280 tx=8480 busoff=0 qovf=0 uds=0 heap=9744
+  31.6s [CTRL] speed=250.0 km/h age=1ms pwm=100.0% | e2e ok=84899 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=93390 tx=8490 busoff=0 qovf=0 uds=0 heap=9744
+  32.6s [CTRL] speed=223.3 km/h age=1ms pwm=89.3% | e2e ok=84999 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=1 | rx=93500 tx=8500 busoff=0 qovf=0 uds=0 heap=9744
+  33.6s [CTRL] fault SPEED_TIMEOUT SET
+  33.6s [CTRL] speed=161.2 km/h age=120ms pwm=0.0% | e2e ok=85087 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=2 | rx=93598 tx=8510 busoff=0 qovf=0 uds=0 heap=9744
+  34.3s [CTRL] fault SPEED_TIMEOUT cleared
+  34.3s [CTRL] fault SPEED_RANGE   SET
+  34.6s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=85111 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=93633 tx=8520 busoff=0 qovf=0 uds=0 heap=9744
+  34.7s [CTRL] fault SPEED_RANGE   cleared
+  35.6s [CTRL] speed=161.4 km/h age=10ms pwm=64.5% | e2e ok=85211 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=93742 tx=8530 busoff=0 qovf=0 uds=0 heap=9744
+  36.6s [CTRL] speed=161.4 km/h age=10ms pwm=64.5% | e2e ok=85311 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=93852 tx=8540 busoff=0 qovf=0 uds=0 heap=9744
+  37.5s [CTRL] speed=161.3 km/h age=10ms pwm=64.5% | e2e ok=85411 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=93962 tx=8550 busoff=0 qovf=0 uds=0 heap=9744
+  38.5s [CTRL] speed=161.4 km/h age=10ms pwm=64.5% | e2e ok=85511 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=94072 tx=8560 busoff=0 qovf=0 uds=0 heap=9744
+  39.5s [CTRL] speed=161.4 km/h age=10ms pwm=64.5% | e2e ok=85611 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=94182 tx=8570 busoff=0 qovf=0 uds=0 heap=9744
+  39.8s [CTRL] fault SPEED_TIMEOUT SET
+  40.6s [CTRL] speed=161.3 km/h age=870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94206 tx=8580 busoff=0 qovf=0 uds=0 heap=9744
+  41.6s [CTRL] speed=161.3 km/h age=1870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94216 tx=8590 busoff=0 qovf=0 uds=0 heap=9744
+  42.6s [CTRL] speed=161.3 km/h age=2870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94226 tx=8600 busoff=0 qovf=0 uds=0 heap=9744
+  43.6s [CTRL] speed=161.3 km/h age=3870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94236 tx=8610 busoff=0 qovf=0 uds=0 heap=9744
+  44.6s [CTRL] speed=161.3 km/h age=4870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94246 tx=8620 busoff=0 qovf=0 uds=0 heap=9744
+  45.6s [CTRL] speed=161.3 km/h age=5870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94256 tx=8630 busoff=0 qovf=0 uds=0 heap=9744
+  46.6s [CTRL] speed=161.3 km/h age=6870ms pwm=0.0% | e2e ok=85625 lost=0 crc=0 rep=0 seq=1 | faults=0x01 dtc=3 | rx=94266 tx=8640 busoff=0 qovf=0 uds=0 heap=9744
+  46.7s [CTRL] fault SPEED_TIMEOUT cleared
+  46.7s [CTRL] fault SPEED_RANGE   SET
+  47.6s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=85713 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94364 tx=8650 busoff=0 qovf=0 uds=0 heap=9744
+  48.6s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=85813 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94474 tx=8660 busoff=0 qovf=0 uds=0 heap=9744
+  49.6s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=85913 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94584 tx=8670 busoff=0 qovf=0 uds=0 heap=9744
+  50.6s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=86013 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94694 tx=8680 busoff=0 qovf=0 uds=0 heap=9744
+  51.5s [CTRL] speed=300.0 km/h age=10ms pwm=0.0% | e2e ok=86113 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94804 tx=8690 busoff=0 qovf=0 uds=0 heap=9744
+  52.5s [CTRL] speed=300.0 km/h age=9ms pwm=0.0% | e2e ok=86213 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=94914 tx=8700 busoff=0 qovf=0 uds=0 heap=9744
+  53.5s [CTRL] speed=300.0 km/h age=9ms pwm=0.0% | e2e ok=86313 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=95024 tx=8710 busoff=0 qovf=0 uds=0 heap=9744
+  54.5s [CTRL] speed=300.0 km/h age=9ms pwm=0.0% | e2e ok=86413 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=95134 tx=8720 busoff=0 qovf=0 uds=0 heap=9744
+  55.6s [CTRL] speed=300.0 km/h age=9ms pwm=0.0% | e2e ok=86513 lost=0 crc=0 rep=0 seq=1 | faults=0x02 dtc=3 | rx=95244 tx=8730 busoff=0 qovf=0 uds=0 heap=9744
+  55.6s [CTRL] fault SPEED_RANGE   cleared
+  56.6s [CTRL] speed=161.2 km/h age=9ms pwm=64.4% | e2e ok=86613 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95354 tx=8740 busoff=0 qovf=0 uds=0 heap=9744
+  57.6s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=86713 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95464 tx=8750 busoff=0 qovf=0 uds=0 heap=9744
+  58.6s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=86813 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95574 tx=8760 busoff=0 qovf=0 uds=0 heap=9744
+  59.5s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=86913 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95684 tx=8770 busoff=0 qovf=0 uds=0 heap=9744
+  60.5s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=87013 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95794 tx=8780 busoff=0 qovf=0 uds=0 heap=9744
+  61.5s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=87113 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=95904 tx=8790 busoff=0 qovf=0 uds=0 heap=9744
+  62.5s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=87213 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=96014 tx=8800 busoff=0 qovf=0 uds=0 heap=9744
+  63.6s [CTRL] speed=161.4 km/h age=9ms pwm=64.5% | e2e ok=87313 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=96124 tx=8810 busoff=0 qovf=0 uds=0 heap=9744
+  64.6s [CTRL] speed=161.3 km/h age=9ms pwm=64.5% | e2e ok=87413 lost=0 crc=0 rep=0 seq=1 | faults=0x00 dtc=3 | rx=96234 tx=8820 busoff=0 qovf=0 uds=0 heap=9744

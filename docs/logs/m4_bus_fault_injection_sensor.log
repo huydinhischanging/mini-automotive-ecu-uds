@@ -1,0 +1,74 @@
+# Two-node CAN bus, fault injection test (M4), 2026-09-26
+# Sensor ECU: NUCLEO-G431RB  (log on ST-LINK VCP)   Control ECU: STM32MP157D-DK1 Cortex-M4 (log on UART7)
+# 0-33 s potentiometer sweep; B1 presses: 33.4/34.3/34.7 s (quick) and 39.7/46.7/55.6 s (slow)
+# Timestamps: seconds since start of capture (both logs captured simultaneously, 100 ms resolution)
+   1.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=91893 drop=117327 rx=8363 rx100=0 busoff=1230
+   2.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92003 drop=117327 rx=8373 rx100=0 busoff=1230
+   3.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92113 drop=117327 rx=8383 rx100=0 busoff=1230
+   4.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92223 drop=117327 rx=8393 rx100=0 busoff=1230
+   5.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92333 drop=117327 rx=8403 rx100=0 busoff=1230
+   6.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92443 drop=117327 rx=8413 rx100=0 busoff=1230
+   7.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92553 drop=117327 rx=8423 rx100=0 busoff=1230
+   8.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92663 drop=117327 rx=8433 rx100=0 busoff=1230
+   9.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92773 drop=117327 rx=8443 rx100=0 busoff=1230
+  10.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92883 drop=117327 rx=8453 rx100=0 busoff=1230
+  11.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=92993 drop=117327 rx=8463 rx100=0 busoff=1230
+  12.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93103 drop=117327 rx=8473 rx100=0 busoff=1230
+  13.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93213 drop=117327 rx=8483 rx100=0 busoff=1230
+  14.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93323 drop=117327 rx=8493 rx100=0 busoff=1230
+  15.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93433 drop=117327 rx=8503 rx100=0 busoff=1230
+  16.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93543 drop=117327 rx=8513 rx100=0 busoff=1230
+  17.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93653 drop=117327 rx=8523 rx100=0 busoff=1230
+  18.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93763 drop=117327 rx=8533 rx100=0 busoff=1230
+  19.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93873 drop=117327 rx=8543 rx100=0 busoff=1230
+  20.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=93983 drop=117327 rx=8553 rx100=0 busoff=1230
+  21.1s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=94093 drop=117327 rx=8563 rx100=0 busoff=1230
+  22.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=94203 drop=117327 rx=8573 rx100=0 busoff=1230
+  23.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=94313 drop=117327 rx=8583 rx100=0 busoff=1230
+  24.0s [SENSOR] speed=196.9 km/h adc=3225 mode=0 | tx=94423 drop=117327 rx=8593 rx100=0 busoff=1230
+  25.0s [SENSOR] speed=163.5 km/h adc=2678 mode=0 | tx=94533 drop=117327 rx=8603 rx100=0 busoff=1230
+  26.1s [SENSOR] speed=233.3 km/h adc=3822 mode=0 | tx=94643 drop=117327 rx=8613 rx100=0 busoff=1230
+  27.0s [SENSOR] speed=230.8 km/h adc=3780 mode=0 | tx=94753 drop=117327 rx=8623 rx100=0 busoff=1230
+  28.0s [SENSOR] speed=142.2 km/h adc=2329 mode=0 | tx=94863 drop=117327 rx=8633 rx100=0 busoff=1230
+  29.0s [SENSOR] speed=152.2 km/h adc=2493 mode=0 | tx=94973 drop=117327 rx=8643 rx100=0 busoff=1230
+  30.0s [SENSOR] speed=211.5 km/h adc=3465 mode=0 | tx=95083 drop=117327 rx=8653 rx100=0 busoff=1230
+  31.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=95193 drop=117327 rx=8663 rx100=0 busoff=1230
+  32.0s [SENSOR] speed=250.0 km/h adc=4095 mode=0 | tx=95303 drop=117327 rx=8673 rx100=0 busoff=1230
+  33.0s [SENSOR] speed=186.0 km/h adc=3047 mode=0 | tx=95413 drop=117327 rx=8683 rx100=0 busoff=1230
+  33.4s [SENSOR] fault mode -> 1
+  34.0s [SENSOR] speed=161.3 km/h adc=2642 mode=1 | tx=95467 drop=117327 rx=8693 rx100=0 busoff=1230
+  34.3s [SENSOR] fault mode -> 2
+  34.7s [SENSOR] fault mode -> 0
+  35.0s [SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=95546 drop=117327 rx=8703 rx100=0 busoff=1230
+  36.0s [SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=95656 drop=117327 rx=8713 rx100=0 busoff=1230
+  37.0s [SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=95766 drop=117327 rx=8723 rx100=0 busoff=1230
+  38.0s [SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=95876 drop=117327 rx=8733 rx100=0 busoff=1230
+  39.0s [SENSOR] speed=161.5 km/h adc=2646 mode=0 | tx=95986 drop=117327 rx=8743 rx100=0 busoff=1230
+  39.7s [SENSOR] fault mode -> 1
+  40.0s [SENSOR] speed=161.4 km/h adc=2644 mode=1 | tx=96065 drop=117327 rx=8753 rx100=0 busoff=1230
+  41.0s [SENSOR] speed=161.4 km/h adc=2644 mode=1 | tx=96075 drop=117327 rx=8763 rx100=0 busoff=1230
+  42.0s [SENSOR] speed=161.4 km/h adc=2643 mode=1 | tx=96085 drop=117327 rx=8773 rx100=0 busoff=1230
+  43.0s [SENSOR] speed=161.3 km/h adc=2642 mode=1 | tx=96095 drop=117327 rx=8783 rx100=0 busoff=1230
+  44.0s [SENSOR] speed=161.3 km/h adc=2642 mode=1 | tx=96105 drop=117327 rx=8793 rx100=0 busoff=1230
+  45.0s [SENSOR] speed=161.4 km/h adc=2643 mode=1 | tx=96115 drop=117327 rx=8803 rx100=0 busoff=1230
+  46.0s [SENSOR] speed=161.4 km/h adc=2643 mode=1 | tx=96125 drop=117327 rx=8813 rx100=0 busoff=1230
+  46.7s [SENSOR] fault mode -> 2
+  47.1s [SENSOR] speed=161.3 km/h adc=2642 mode=2 | tx=96168 drop=117327 rx=8823 rx100=0 busoff=1230
+  48.0s [SENSOR] speed=161.3 km/h adc=2642 mode=2 | tx=96278 drop=117327 rx=8833 rx100=0 busoff=1230
+  49.0s [SENSOR] speed=161.4 km/h adc=2643 mode=2 | tx=96388 drop=117327 rx=8843 rx100=0 busoff=1230
+  50.0s [SENSOR] speed=161.4 km/h adc=2644 mode=2 | tx=96498 drop=117327 rx=8853 rx100=0 busoff=1230
+  51.0s [SENSOR] speed=161.4 km/h adc=2643 mode=2 | tx=96608 drop=117327 rx=8863 rx100=0 busoff=1230
+  52.0s [SENSOR] speed=161.4 km/h adc=2643 mode=2 | tx=96718 drop=117327 rx=8873 rx100=0 busoff=1230
+  53.0s [SENSOR] speed=161.4 km/h adc=2644 mode=2 | tx=96828 drop=117327 rx=8883 rx100=0 busoff=1230
+  54.0s [SENSOR] speed=161.4 km/h adc=2644 mode=2 | tx=96938 drop=117327 rx=8893 rx100=0 busoff=1230
+  55.0s [SENSOR] speed=161.2 km/h adc=2641 mode=2 | tx=97048 drop=117327 rx=8903 rx100=0 busoff=1230
+  55.6s [SENSOR] fault mode -> 0
+  56.0s [SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=97158 drop=117327 rx=8913 rx100=0 busoff=1230
+  57.0s [SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=97268 drop=117327 rx=8923 rx100=0 busoff=1230
+  58.0s [SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=97378 drop=117327 rx=8933 rx100=0 busoff=1230
+  59.0s [SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=97488 drop=117327 rx=8943 rx100=0 busoff=1230
+  60.0s [SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=97598 drop=117327 rx=8953 rx100=0 busoff=1230
+  61.0s [SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=97708 drop=117327 rx=8963 rx100=0 busoff=1230
+  62.0s [SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=97818 drop=117327 rx=8973 rx100=0 busoff=1230
+  63.0s [SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=97928 drop=117327 rx=8983 rx100=0 busoff=1230
+  64.0s [SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=98038 drop=117327 rx=8993 rx100=0 busoff=1230
