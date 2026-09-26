@@ -263,10 +263,10 @@ The first run of the Control ECU on the DK1 did nothing observable. No debugger 
 \label{tab:memory}
 \begin{tabular}{@{}lrrl@{}}
 \toprule
-\textbf{Firmware} & \textbf{Code} & \textbf{RAM (data+bss)} & \textbf{Available} \\
+\textbf{Firmware} & \textbf{Code} & \textbf{RAM} & \textbf{Available} \\
 \midrule
 Sensor ECU (STM32G431) & 31.6\,KB & 2.5\,KB & 128\,KB flash / 32\,KB RAM \\
-Control ECU (M4, \texttt{-O0}, with UDS/DTC) & 76.5\,KB & 24.8\,KB & 128\,KB code SRAM / 128\,KB data SRAM \\
+Control ECU (M4, \texttt{-O0}) & 76.5\,KB & 24.8\,KB & 128\,KB code / 128\,KB data SRAM \\
 \bottomrule
 \end{tabular}
 \end{table}

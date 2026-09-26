@@ -81,9 +81,9 @@ The two controllers run from different kernel clocks, so each node has its own t
 \label{tab:bittiming}
 \begin{tabular}{@{}lcc@{}}
 \toprule
- & \textbf{Sensor ECU (STM32G431)} & \textbf{Control ECU (STM32MP157)} \\
+ & \textbf{Sensor ECU (G431)} & \textbf{Control ECU (MP157)} \\
 \midrule
-Kernel clock & 170\,MHz (PCLK1, from 24\,MHz HSE) & 24\,MHz (HSE) \\
+Kernel clock & 170\,MHz (PCLK1)$^{a}$ & 24\,MHz (HSE) \\
 Prescaler & 10 & 3 \\
 $t_q$ & 58.8\,ns & 125\,ns \\
 Seg1 / Seg2 / SJW & 29 / 4 / 4 & 13 / 2 / 2 \\
@@ -93,6 +93,8 @@ Sample point & 88.2\,\% & 87.5\,\% \\
 Tolerance bound (Eq.~\ref{eq:tolerance}) & 0.46\,\% & 0.49\,\% \\
 \bottomrule
 \end{tabular}
+
+{\footnotesize $^{a}$ PLL from the 24\,MHz HSE crystal.}
 \end{table}
 
 On the STM32G431, 170\,MHz cannot be divided into a 16-quantum bit at 500\,kbit/s, so 34\,tq were used; the resulting 88.2\,\% sample point is within a fraction of a quantum of 87.5\,\%. On the STM32MP157 the 24\,MHz HSE gives exactly 16\,tq and 87.5\,\%. The kernel clock that Linux selects by default (PLL4\_R, 74.25\,MHz) cannot produce 500\,kbit/s exactly ($74.25\,\text{MHz}/500\,\text{kHz} = 148.5$); the Control ECU therefore switches the FDCAN kernel clock to HSE at start-up (Section~\ref{sec:bringup}) and keeps a fallback timing for 74.25\,MHz with a 0.34\,\% error.
