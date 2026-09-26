@@ -18,6 +18,7 @@
 #include "can_matrix.h"
 #include "e2e.h"
 #include "gpio_drv.h"
+#include "tester_app.h"
 
 /* ---------------------------------------------------------------------------
  * Configuration
@@ -243,6 +244,7 @@ static void OnCanRx(const CanDrv_Frame_t *frame)
     {
         s_rxSpeedFrames++;
     }
+    TesterApp_OnCanFrameIsr(frame);   /* UDS responses for the tester */
 }
 
 /* ---------------------------------------------------------------------------
@@ -295,4 +297,9 @@ void SensorApp_Task10ms(void)
     {
         LogStatus();
     }
+}
+
+uint16_t SensorApp_GetSpeedX10(void)
+{
+    return AdcToSpeedX10(s_adcFiltered);
 }

@@ -22,6 +22,10 @@ misra-c2012-11.4:*/Core/Mcal/*
 misra-c2012-21.6:*/Core/App/*
 misra-c2012-17.1:*/Core/App/*
 
+// D6 - Rule 11.6 (required): integer-to-pointer conversion of SCB->VTOR to reach the reset
+// vector for the software restart. One function, one file.
+misra-c2012-11.6:*sys_drv.c
+
 // Not project code: STM32Cube HAL, CMSIS, FreeRTOS and STM32CubeMX-generated headers.
 *:*/Drivers/*
 *:*/Middlewares/*

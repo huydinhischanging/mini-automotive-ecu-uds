@@ -19,7 +19,7 @@ R2 & M1: 100 + 10 frames per second & met \\
 R3 & E2E unit tests; M2: 30\,900 frames checked & met \\
 R4 & M4: timeout detected within about 100\,ms and out-of-range immediately, output forced to 0\,\%; E2E detection shown with stale frames & met \\
 R5 & Sensor ECU button B1 over the bus (M4); Control ECU local fault through the M3 self-test & met \\
-R6 & UDS over ISO-TP on 0x7E0/0x7E8 with NRCs: 22 unit tests and 14/14 on-target self-test (loopback); hard reset not yet exercised & met (loopback) \\
+R6 & UDS over ISO-TP on 0x7E0/0x7E8 with NRCs: 22 unit tests, 14/14 on-target self-test, 22/22 steps from an external tester on the bus including hard reset & met \\
 R7 & Only MCAL files include the HAL; 34 PC unit tests on the shared modules & met \\
 R8 & Hundreds of bus-off events during bus bring-up, each recovered automatically & met \\
 \bottomrule
@@ -48,7 +48,7 @@ Internal loopback validates a large part of the design: the controller configura
 
 \begin{itemize}
   \item The bit timing on the bus has not been measured with a logic analyser; correctness is inferred from error-free operation.
-  \item Diagnostics are verified only against a tester on the same core; an external tester on a physical bus is still missing, and the hard reset has not been exercised.
+  \item The external tester is a firmware tester on the Sensor ECU; a PC or Linux tester (SocketCAN, e.g. python-udsoncan) has not been used yet. The hard reset restarts the firmware, not the core.
   \item DTCs are kept in RAM only (no non-volatile storage, no aging).
   \item The HAL tick of the M4 runs at about twice the intended rate in production mode.
   \item The FDCAN clock is reconfigured by the M4 rather than by the Linux device tree.

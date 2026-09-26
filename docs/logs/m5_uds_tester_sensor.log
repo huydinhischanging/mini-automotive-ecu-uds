@@ -1,0 +1,84 @@
+# External UDS tester on the Sensor ECU (NUCLEO-G431RB) -> Control ECU over the physical CAN bus (M5)
+# Commands sent on the ST-LINK VCP: d (read DTCs), t (test), v (version+speed), f (functional), r (hard reset), d
+# Captured 2026-09-26, both ECU logs recorded simultaneously.
+[TESTER]  1/1 Read all DTCs                          PASS
+        59 02 7F 
+        0 DTC(s)
+[TESTER] done: 1/1 passed
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=3009 drop=72 rx=282 rx100=0 busoff=0
+[SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=3119 drop=72 rx=292 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=3230 drop=72 rx=303 rx100=0 busoff=0
+[TESTER]  1/12 TesterPresent                          PASS
+        7E 00 
+[TESTER]  2/12 ReadDID F195 version                   PASS
+        62 F1 95 43 54 52 4C 2D 30 2E 33 2E 30 
+        version "CTRL-0.3.0"
+[TESTER]  3/12 ReadDID 0100 speed                     PASS
+        62 01 00 06 4D 
+        Control ECU speed 161.3 km/h, Sensor ECU sends 161.3 km/h
+[TESTER]  4/12 ReadDID x3 (tester sends FF+CF)        PASS
+        62 F1 95 43 54 52 4C 2D 30 2E 33 2E 30 01 00 06 4D 01 01 00 
+        version "CTRL-0.3.0"
+[TESTER]  5/12 Unknown service -> NRC 11              PASS
+        7F 85 11 
+        NRC 0x11 serviceNotSupported
+[TESTER]  6/12 Unknown DID -> NRC 31                  PASS
+        7F 22 31 
+        NRC 0x31 requestOutOfRange
+[TESTER]  7/12 Reset in default -> NRC 7E             PASS
+        7F 11 7E 
+        NRC 0x7E subFunctionNotSupportedInActiveSession
+[TESTER]  8/12 Read all DTCs                          PASS
+        59 02 7F 
+        0 DTC(s)
+[TESTER]  9/12 Session extended                       PASS
+        50 03 00 32 01 F4 
+[TESTER] 10/12 Clear all DTCs                         PASS
+        54 
+[TESTER] 11/12 Confirmed DTCs = 0                     PASS
+        59 01 7F 01 00 00 
+[TESTER] 12/12 Session default                        PASS
+        50 01 00 32 01 F4 
+[TESTER] done: 12/12 passed
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=3353 drop=72 rx=327 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=3463 drop=72 rx=337 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=3573 drop=72 rx=347 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=3683 drop=72 rx=357 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=3793 drop=72 rx=367 rx100=0 busoff=0
+[TESTER]  1/2 ReadDID F195 version                   PASS
+        62 F1 95 43 54 52 4C 2D 30 2E 33 2E 30 
+        version "CTRL-0.3.0"
+[TESTER]  2/2 ReadDID 0100 speed                     PASS
+        62 01 00 06 4E 
+        Control ECU speed 161.4 km/h, Sensor ECU sends 161.4 km/h
+[TESTER] done: 2/2 passed
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=3906 drop=72 rx=380 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=4016 drop=72 rx=390 rx100=0 busoff=0
+[TESTER]  1/2 Functional TesterPresent               PASS
+        7E 00 
+[TESTER]  2/2 Functional unknown service: silent     PASS
+[TESTER] done: 2/2 passed
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=4128 drop=72 rx=401 rx100=0 busoff=0
+[SENSOR] speed=161.3 km/h adc=2642 mode=0 | tx=4238 drop=72 rx=411 rx100=0 busoff=0
+[TESTER]  1/4 Session extended                       PASS
+        50 03 00 32 01 F4 
+[TESTER]  2/4 ECUReset hard                          PASS
+        51 01 
+[SENSOR] speed=161.5 km/h adc=2645 mode=0 | tx=4350 drop=72 rx=422 rx100=0 busoff=0
+[SENSOR] speed=161.5 km/h adc=2645 mode=0 | tx=4460 drop=72 rx=432 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=4570 drop=72 rx=442 rx100=0 busoff=0
+[TESTER]  3/4 ECU back: TesterPresent (after 3 s)    PASS
+        7E 00 
+[TESTER]  4/4 ECU back: ReadDID F195                 PASS
+        62 F1 95 43 54 52 4C 2D 30 2E 33 2E 30 
+        version "CTRL-0.3.0"
+[TESTER] done: 4/4 passed
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=4683 drop=72 rx=455 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=4793 drop=72 rx=465 rx100=0 busoff=0
+[SENSOR] speed=161.4 km/h adc=2644 mode=0 | tx=4903 drop=72 rx=475 rx100=0 busoff=0
+[TESTER]  1/1 Read all DTCs                          PASS
+        59 02 7F 
+        0 DTC(s)
+[TESTER] done: 1/1 passed
+[SENSOR] speed=161.4 km/h adc=2643 mode=0 | tx=5014 drop=72 rx=486 rx100=0 busoff=0
+[SENSOR] speed=161.5 km/h adc=2645 mode=0 | tx=5124 drop=72 rx=496 rx100=0 busoff=0

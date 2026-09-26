@@ -43,6 +43,7 @@ narrowly as the tool allows.
 | D3 | 8.9 object at block scope | Advisory | all | Module state is kept at file scope on purpose: on the STM32MP157 it is located by symbol name and read from Linux through `/dev/mem`, the technique used to find both bring-up defects. |
 | D4 | 11.4 pointer/integer conversion | Advisory | `Core/Mcal` | Peripheral access through CMSIS base-address macros (`GPIOA`, `RCC`, ...). Confined to the MCAL, the only layer allowed to touch hardware. |
 | D5 | 21.6 `<stdio.h>`, 17.1 `<stdarg.h>` | Required | `Core/App` | Debug log (`printf` / `vprintf`) on the UART. Not used on any control or communication path; a production build would replace it with a bounded logger. |
+| D6 | 11.6 pointer/integer conversion | Required | `sys_drv.c` | The software restart reads the vector table address from `SCB->VTOR` (an integer register) and jumps to the reset vector. There is no conforming way to express this; it is confined to one function. |
 
-Deviating a *required* rule (D5) needs a documented justification under MISRA
+Deviating a *required* rule (D5, D6) needs a documented justification under MISRA
 Compliance:2020; the one above is the record for this project.

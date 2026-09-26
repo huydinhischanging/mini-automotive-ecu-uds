@@ -1,0 +1,25 @@
+# External UDS tester on the Sensor ECU (NUCLEO-G431RB) -> Control ECU over the physical CAN bus (M5)
+# Commands sent on the ST-LINK VCP: d (read DTCs), t (test), v (version+speed), f (functional), r (hard reset), d
+# Captured 2026-09-26, both ECU logs recorded simultaneously.
+[CTRL] speed=161.3 km/h age=6ms pwm=64.5% | e2e ok=601 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=662 tx=61 busoff=0 qovf=0 uds=1 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=701 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=772 tx=71 busoff=0 qovf=0 uds=1 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=801 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=893 tx=93 busoff=0 qovf=0 uds=12 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=901 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1006 tx=106 busoff=0 qovf=0 uds=15 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=1001 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1116 tx=116 busoff=0 qovf=0 uds=15 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=1101 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1226 tx=126 busoff=0 qovf=0 uds=15 heap=9744
+[CTRL] speed=161.4 km/h age=6ms pwm=64.5% | e2e ok=1201 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1336 tx=136 busoff=0 qovf=0 uds=15 heap=9744
+[CTRL] speed=161.4 km/h age=5ms pwm=64.5% | e2e ok=1301 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1449 tx=149 busoff=0 qovf=0 uds=18 heap=9744
+[CTRL] speed=161.4 km/h age=5ms pwm=64.5% | e2e ok=1401 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1559 tx=159 busoff=0 qovf=0 uds=18 heap=9744
+[CTRL] speed=161.4 km/h age=5ms pwm=64.5% | e2e ok=1501 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1671 tx=170 busoff=0 qovf=0 uds=20 heap=9744
+[CTRL] speed=161.4 km/h age=5ms pwm=64.5% | e2e ok=1601 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1781 tx=180 busoff=0 qovf=0 uds=20 heap=9744
+[DIAG] hard reset
+[CTRL] Control ECU boot (production mode)
+[CTRL] FDCAN kernel clock: 24000000 Hz
+[CTRL] start, CAN NORMAL, FDCAN clock 24000000 Hz, heap free 9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=101 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=111 tx=10 busoff=0 qovf=0 uds=0 heap=9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=201 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=221 tx=20 busoff=0 qovf=0 uds=0 heap=9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=301 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=331 tx=30 busoff=0 qovf=0 uds=0 heap=9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=401 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=444 tx=43 busoff=0 qovf=0 uds=3 heap=9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=501 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=554 tx=53 busoff=0 qovf=0 uds=3 heap=9744
+[CTRL] speed=161.3 km/h age=7ms pwm=64.5% | e2e ok=601 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=664 tx=63 busoff=0 qovf=0 uds=3 heap=9744
+[CTRL] speed=161.4 km/h age=7ms pwm=64.5% | e2e ok=701 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=775 tx=74 busoff=0 qovf=0 uds=4 heap=9744

@@ -66,7 +66,7 @@ tested on a PC.
 | SID | Service | Implemented |
 |---|---|---|
 | `0x10` | Diagnostic Session Control | `01` default, `03` extended; P2 = 50 ms, P2* = 5 s, S3 = 5 s |
-| `0x11` | ECU Reset | `01` hard (core reset, not yet exercised on hardware), `03` soft (new operation cycle); extended session only |
+| `0x11` | ECU Reset | `01` hard (firmware restart from the reset vector), `03` soft (new operation cycle); extended session only |
 | `0x14` | Clear Diagnostic Information | group `FFFFFF` |
 | `0x19` | Read DTC Information | `01` number of DTCs by status mask, `02` DTCs by status mask |
 | `0x22` | Read Data By Identifier | `F195` SW version, `0100` speed, `0101` active faults; several DIDs per request |
@@ -219,6 +219,30 @@ Bring-up of the bus was diagnosed from the FDCAN error registers of both nodes: 
 back its own frames (LEC = ACK error) proved the MCU-transceiver wiring on each side, and putting the
 DK1 into bus-monitoring (listen-only) mode proved that the bus polarity was correct.
 
+### M5 — External UDS tester on the bus ✅
+
+The Sensor ECU doubles as a UDS tester (shared ISO-TP module, TX 0x7E0 / RX 0x7E8), driven by
+single keys on its ST-LINK virtual COM port (`t` test, `d` DTCs, `c` clear, `v` version+speed,
+`f` functional 0x7DF, `r` hard reset). All **22 steps passed** over the physical bus; logs:
+[tester](docs/logs/m5_uds_tester_sensor.log), [control ECU](docs/logs/m5_uds_tester_control.log).
+
+```
+[TESTER]  3/12 ReadDID 0100 speed                     PASS
+        Control ECU speed 161.3 km/h, Sensor ECU sends 161.3 km/h
+[TESTER]  8/12 Read all DTCs                          PASS
+        2 DTC(s)
+        U0100-87  status 0x2E pending confirmed
+        U0400-81  status 0x2E pending confirmed
+[TESTER]  2/2 Functional unknown service: silent     PASS
+[TESTER]  2/4 ECUReset hard                          PASS
+[TESTER]  3/4 ECU back: TesterPresent (after 3 s)    PASS
+```
+
+Hard reset finding: on the STM32MP157 in production mode, `NVIC_SystemReset()` leaves the M4 held
+in reset (`RCC_MP_GCR.BOOT_MCU = 0`) because Linux owns its life cycle and is not informed. UDS
+`0x11 01` therefore restarts the firmware from the reset vector (`SysDrv_Restart`) after resetting
+the M4 peripherals, without resetting the core.
+
 ## Bring-up notes (STM32MP157 Cortex-M4)
 
 Issues found while bringing up the Control ECU in production mode (Linux on the A7
@@ -247,10 +271,10 @@ Known open points:
 - [x] M3: UDS server + DTC manager on the Control ECU, 14/14 on-target UDS self-test in loopback
 - [x] M4: two-node bus, 100 frames/s with 0 E2E errors, 0x200 status back to the Sensor ECU, fault injection -> DTCs
 - [ ] Logic analyzer capture of bit timing on the bus
-- [ ] External UDS tester on the bus (and hard reset test)
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)
+- [x] M5: external UDS tester on the Sensor ECU, 22/22 steps over the bus incl. hard reset
 - [ ] Python tester on Linux (SocketCAN)
 - [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
 - [x] cppcheck + MISRA C:2012 addon: no findings, deviations documented

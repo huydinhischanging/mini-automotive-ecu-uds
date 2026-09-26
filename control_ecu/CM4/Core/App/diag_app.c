@@ -7,12 +7,12 @@
 #include <string.h>
 
 #include "cmsis_os.h"
-#include "main.h"
 
 #include "can_matrix.h"
 #include "control_app.h"
 #include "dtc_manager.h"
 #include "isotp.h"
+#include "sys_drv.h"
 #include "uds_server.h"
 
 #define DIAG_BUFFER_SIZE        (256U)
@@ -96,7 +96,7 @@ static void EcuReset(uint8_t resetType)
     else
     {
         ControlApp_Log("[DIAG] hard reset\r\n");
-        NVIC_SystemReset();
+        SysDrv_Restart();   /* see sys_drv.h: the core must not really reset */
     }
 }
 

@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "sensor_app.h"
+#include "tester_app.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,6 +130,7 @@ int main(void)
   {
     Error_Handler();
   }
+  TesterApp_Init();
   if (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK)
   {
     Error_Handler();
@@ -146,6 +148,7 @@ int main(void)
     {
       s_tick10ms = false;
       SensorApp_Task10ms();
+      TesterApp_Task();
     }
   }
   /* USER CODE END 3 */

@@ -206,6 +206,32 @@ whole run & 110 frames/s, no frame dropped & 100 frames/s, 0 CRC, lost or repeat
 
 The timeout was reported one log line (100\,ms resolution) after the Sensor ECU changed mode, consistent with the 100\,ms timeout threshold. The DTC count stayed at three after all faults had healed: confirmed DTCs are kept until a tester clears them, as ISO~14229 requires. One of the three, U0400-81, was stored when the bus first came up: the Sensor ECU flushed three stale frames from its transmit FIFO with old alive counters, and the E2E check correctly classified them as out of sequence.
 
+\section{Milestone M5: External UDS Tester}
+
+The self-test of milestone M3 runs on the same core as the server and cannot exercise a reset. A small tester was therefore added to the Sensor ECU: it reuses the shared ISO-TP module (TX 0x7E0, RX 0x7E8), receives CAN frames through a ring buffer filled by the interrupt so that all ISO-TP processing stays in the main loop, and is driven by single-key commands on the ST-LINK virtual COM port. Table~\ref{tab:m5} lists the command sequences run over the physical bus; all 22 steps passed.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Milestone M5: UDS from an external node}
+\label{tab:m5}
+\begin{tabularx}{\textwidth}{@{}clcX@{}}
+\toprule
+\textbf{Key} & \textbf{Sequence} & \textbf{Steps} & \textbf{Observation} \\
+\midrule
+t & full test & 12/12 & segmented request and response over the bus, NRC 0x11/0x31/0x7E, sessions, DTC read and clear \\
+v & version and speed & 2/2 & speed read over UDS equals the speed the Sensor ECU publishes (161.4\,km/h) \\
+d & read DTCs & 1/1 & e.g. U0100-87 and U0400-81, status 0x2E (pending, confirmed, test no longer failing) after the Sensor ECU was reflashed \\
+f & functional 0x7DF & 2/2 & TesterPresent answered; unsupported service correctly silent \\
+r & hard reset & 4/4 & positive response, restart, ECU answers again within 3\,s \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Hard reset on a core controlled by Linux}
+
+The first hard-reset attempt returned the positive response 0x51 and then the ECU never answered again. Linux still reported the M4 as running, but its tick counters were frozen and \texttt{RCC\_MP\_GCR.BOOT\_MCU} read 0: \texttt{NVIC\_SystemReset()} had reset the Cortex-M4, which then stayed held in reset, because in production mode the boot of the M4 is controlled by Linux, and Linux was not told that the core had reset itself. Since a UDS hard reset is meant to emulate a power cycle of the ECU application, it was reimplemented as a firmware restart: interrupts are disabled, the peripherals owned by the M4 (FDCAN, TIM1, TIM7, UART7) are reset through the RCC, the core returns to the main stack in privileged mode, and execution jumps to the reset vector, so that RAM, the RTOS and all drivers are initialised again. With this change the ECU restarts in well under 3\,s and the sequence passes. Coordinating a true core reset with Linux (for example through the inter-processor communication controller) remains possible future work.
+
 \section{Static Analysis}
 
 All project-owned code (the portable modules in \texttt{common/} and the application and MCAL layers of both ECUs) was analysed with cppcheck~2.21 and its MISRA C:2012 addon, using the real HAL, CMSIS and FreeRTOS headers for type information; vendor code and STM32CubeMX-generated headers are parsed but not reported. The script \texttt{tools/static\_analysis.sh} makes the check reproducible and fails on any finding.
@@ -231,6 +257,7 @@ A first attempt reported many violations of rule 17.3 (implicit function declara
 8.9 & Advisory & deviation D3: file-scope module state, inspectable by symbol from Linux \\
 11.4 & Advisory & deviation D4: CMSIS register access, MCAL layer only \\
 21.6, 17.1 & Required & deviation D5: \texttt{printf}/\texttt{vprintf} debug log, application layer only \\
+11.6 & Required & deviation D6: integer-to-pointer conversion of the vector table address for the software restart, one function \\
 \bottomrule
 \end{tabularx}
 \end{table}

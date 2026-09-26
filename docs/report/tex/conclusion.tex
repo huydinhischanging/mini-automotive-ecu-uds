@@ -12,7 +12,7 @@ The most instructive part of the work was the bring-up of the Control ECU on a h
 \begin{enumerate}
   \item \textbf{Bus measurement.} Capture the bus with a logic analyser to measure the bit time and sample point of both nodes.
   \item \textbf{DTC persistence.} Keep DTCs across power cycles (the M4 has no flash; storage through Linux or an external EEPROM) and add aging of confirmed DTCs.
-  \item \textbf{Hard reset.} Verify UDS 0x11 01 with an external tester and check how Linux \texttt{remoteproc} reacts to a self-reset of the M4.
+  \item \textbf{Core reset.} Coordinate a true Cortex-M4 reset with Linux (remoteproc) instead of the firmware restart.
   \item \textbf{Tester.} A Python UDS client on Linux using SocketCAN, either through a USB-CAN adapter or the second FDCAN controller of the STM32MP157.
   \item \textbf{Quality.} A fix for the HAL tick rate, moving the FDCAN clock configuration into the Linux device tree, and timing measurements (task execution times, interrupt latency).
   \item \textbf{Documentation.} A demonstration video of the complete fault-to-DTC-to-tester flow.
