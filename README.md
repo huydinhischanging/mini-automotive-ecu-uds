@@ -128,6 +128,22 @@ configuration, acceptance filter, RX interrupt and frame packing without a trans
 | ADC | full sweep follows the potentiometer, ±1–2 LSB noise at rest |
 | Fault injection (B1) | pending hardware check |
 
+### M2 — Control ECU bring-up on the STM32MP157 Cortex-M4 (FDCAN internal loopback) ✅
+
+The M4 firmware is loaded by Linux (remoteproc). In loopback it plays the Sensor ECU
+(speed ramp 0–250 km/h) so the full receive chain is exercised on the DK1 alone:
+FDCAN ISR → RTOS queue → E2E check → fault monitor → PWM output.
+
+![Control ECU UART log in internal loopback](docs/images/m2_control_loopback_uart.png)
+
+| Check | Result |
+|---|---|
+| Throughput | 100 frames/s received, `rx = tx − 1` (last frame in flight) |
+| Long run | 30 900 frames, 0 CRC / 0 lost / 0 repeated / 0 sequence errors |
+| RTOS | 0 queue overflows, 11 KB of 16 KB heap free |
+| Output | PWM follows speed (e.g. 193.4 km/h → 77.3 %), no active faults |
+| Bring-up fixes | FreeRTOS SysTick handler, FDCAN glitch-free clock mux (see below) |
+
 ## Bring-up notes (STM32MP157 Cortex-M4)
 
 Issues found while bringing up the Control ECU in production mode (Linux on the A7
@@ -153,7 +169,7 @@ Known open points:
 - [ ] Sensor ECU: verify on the real bus with a logic analyzer
 - [x] Control ECU: M4 firmware on OpenSTLinux (remoteproc), FDCAN owned by M4, FreeRTOS tasks,
       E2E check, timeout/range faults, safe-state PWM — verified in FDCAN internal loopback
-- [ ] Control ECU <-> Sensor ECU on the real bus
+- [ ] M3: Control ECU <-> Sensor ECU on the real bus (SN65HVD230, logic analyzer)
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [ ] UDS server with services above
 - [ ] DTC manager (timeout, out-of-range, injected faults)
