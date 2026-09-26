@@ -38,6 +38,19 @@
 #define SENSOR_ALIVE_CYCLE_MS       (100U)
 
 /* ---------------------------------------------------------------------------
+ * 0x200 CONTROL_STATUS   Control ECU -> bus   DLC 8   cycle 100 ms
+ *   byte 0   : ActiveFaults  bit mask, same order as the Control ECU monitors
+ *   byte 1   : ConfirmedDtcs number of confirmed DTCs
+ *   byte 2-3 : OutputDuty    0..1000 (0.1 % per bit), big-endian
+ *   byte 4-5 : reserved (0)
+ *   byte 6   : AliveCounter  0..15, +1 every frame
+ *   byte 7   : CRC8 SAE-J1850 over bytes 0..6
+ * ------------------------------------------------------------------------- */
+#define CANID_CONTROL_STATUS        (0x200U)
+#define CONTROL_STATUS_DLC          (8U)
+#define CONTROL_STATUS_CYCLE_MS     (100U)
+
+/* ---------------------------------------------------------------------------
  * UDS diagnostics (ISO 14229 over ISO 15765-2), physical addressing
  * ------------------------------------------------------------------------- */
 #define CANID_UDS_REQ_CONTROL       (0x7E0U)    /* Tester -> Control ECU */

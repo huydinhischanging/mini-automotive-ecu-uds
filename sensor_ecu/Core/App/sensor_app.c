@@ -24,7 +24,7 @@
  * ------------------------------------------------------------------------- */
 /* 1: FDCAN internal loopback, runs on the bare Nucleo (week 2 test).
  * 0: normal mode, needs the SN65HVD230 and at least one other node to ACK. */
-#define SENSOR_APP_CAN_LOOPBACK     (1U)
+#define SENSOR_APP_CAN_LOOPBACK     (0U)
 
 #define TASK_PERIOD_MS              (10U)
 #define ALIVE_PERIOD_TICKS          (SENSOR_ALIVE_CYCLE_MS / TASK_PERIOD_MS)

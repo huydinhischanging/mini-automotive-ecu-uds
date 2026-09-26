@@ -36,6 +36,7 @@ over **ISO-TP (ISO 15765-2)**.
 |---|---|---|---|
 | `0x100` | Sensor → bus | 10 ms | Speed (0.1 km/h), raw ADC, status, alive counter, CRC-8 |
 | `0x101` | Sensor → bus | 100 ms | Node state, uptime, bus-off count, alive counter, CRC-8 |
+| `0x200` | Control ECU → bus | 100 ms | active faults, confirmed DTC count, output duty, alive counter, CRC-8 |
 | `0x7E0` | Tester → Control ECU | on request | UDS request |
 | `0x7E8` | Control ECU → Tester | on request | UDS response |
 
@@ -100,6 +101,18 @@ common/dtc/          DTC manager with ISO 14229 status bits
 tests/               host unit tests (make)
 tester/              (planned) Python UDS client (SocketCAN)
 ```
+
+## Wiring (verified)
+
+| Signal | NUCLEO-G431RB | SN65HVD230 | STM32MP157D-DK1 |
+|---|---|---|---|
+| FDCAN1_TX | PA12 = CN10 pin 12 (morpho) | CTX | PA12 = CN13 pin 9 (Arduino D14) |
+| FDCAN1_RX | PA11 = CN10 pin 14 (morpho) | CRX | PA11 = CN13 pin 10 (Arduino D15) |
+| Supply | 3V3 / GND (CN6) | 3V3 / GND | 3V3 = CN16 pin 4, GND = CN16 pin 6 |
+
+Bus: CANH–CANH, CANL–CANL (twisted pair) and a common GND between both boards.
+Each module carries a 120 Ω terminator, so CANH–CANL measures about 60 Ω with both connected.
+On the DK1 use D14/D15 on CN13, not A4/A5; the same signals are also on the 40-pin CN2 (pins 3 and 5).
 
 ## Building and running the Sensor ECU
 
@@ -204,7 +217,8 @@ Known open points:
 - [x] Control ECU: M4 firmware on OpenSTLinux (remoteproc), FDCAN owned by M4, FreeRTOS tasks,
       E2E check, timeout/range faults, safe-state PWM — verified in FDCAN internal loopback
 - [x] M3: UDS server + DTC manager on the Control ECU, 14/14 on-target UDS self-test in loopback
-- [ ] M4: Control ECU <-> Sensor ECU on the real bus (SN65HVD230, logic analyzer)
+- [x] M4 (in progress): two-node bus running — 100 frames/s Sensor -> Control with 0 E2E errors, 0x200 status back to the Sensor ECU
+- [ ] M4: fault injection over the real bus, logic analyzer capture
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)

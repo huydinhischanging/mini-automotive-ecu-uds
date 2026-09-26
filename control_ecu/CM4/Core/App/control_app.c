@@ -30,7 +30,7 @@
  * ------------------------------------------------------------------------- */
 /* 1: FDCAN internal loopback + a fake Sensor frame every 10 ms, so the whole
  *    receive path can be tested on the DK1 alone. 0: real bus. */
-#define CONTROL_APP_CAN_LOOPBACK    (1U)
+#define CONTROL_APP_CAN_LOOPBACK    (0U)
 
 #define RX_QUEUE_LEN                (32U)
 #define MONITOR_PERIOD_MS           (10U)
@@ -293,6 +293,21 @@ static void SendFakeSensorFrame(void)
 }
 #endif
 
+/* Cyclic status of this ECU: lets the other nodes (and a bus trace) see the
+ * Control ECU alive, and gives bidirectional traffic on the bus. */
+static void SendStatusFrame(uint16_t duty)
+{
+    static uint8_t counter = 0U;
+    uint8_t data[CONTROL_STATUS_DLC] = {0};
+
+    data[0] = ControlApp_GetFaultMask();
+    data[1] = DiagApp_ConfirmedDtcCount();
+    data[2] = (uint8_t)(duty >> 8U);
+    data[3] = (uint8_t)(duty & 0xFFU);
+    E2e_Protect(data, &counter);
+    (void)ControlApp_CanSend(CANID_CONTROL_STATUS, data, CONTROL_STATUS_DLC);
+}
+
 static void MonitorTask(void *argument)
 {
     uint32_t     next = osKernelGetTickCount();
@@ -346,6 +361,11 @@ static void MonitorTask(void *argument)
         IoDrv_SetPwm(duty);
 
         CanDrv_MainFunction();
+
+        if ((tick % (CONTROL_STATUS_CYCLE_MS / MONITOR_PERIOD_MS)) == 0U)
+        {
+            SendStatusFrame(duty);
+        }
 
         if ((tick % LOG_PERIOD_TICKS) == 0U)
         {
