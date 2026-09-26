@@ -19,7 +19,7 @@ R2 & M1: 100 + 10 frames per second & met \\
 R3 & E2E unit tests; M2: 30\,900 frames checked & met \\
 R4 & Timeout set at start-up and cleared by data (M2); range and E2E detection implemented, not yet injected on hardware & partly met \\
 R5 & Implemented on both ECUs; not yet exercised on hardware & open \\
-R6 & ISO-TP complete and tested; UDS server not implemented & open \\
+R6 & UDS over ISO-TP on 0x7E0/0x7E8 with NRCs: 22 unit tests and 14/14 on-target self-test (loopback); hard reset not yet exercised & met (loopback) \\
 R7 & Only MCAL files include the HAL; 34 PC unit tests on the shared modules & met \\
 R8 & Implemented on both ECUs; requires a physical bus to provoke bus-off & open \\
 \bottomrule
@@ -36,6 +36,8 @@ Internal loopback validates a large part of the design: the controller configura
 
 \paragraph{On a heterogeneous SoC the M4 inherits the clock tree of Linux.} Code that works on a standalone MCU can fail on the STM32MP1 because peripherals assigned to the M4 still depend on clock settings chosen by Linux. The FDCAN defect was a consequence of a general hardware rule (glitch-free multiplexers need both inputs running) meeting a specific software state (an unused PLL output switched off). The clean long-term solution is to let Linux configure the FDCAN kernel clock through the device tree; the firmware-side switch with read-back is a pragmatic and verified workaround.
 
+\paragraph{Testing the integration, not only the units.} The unit tests showed that the UDS server and the DTC manager behave as specified in isolation. The on-target self-test added what they cannot show: that ISO-TP runs correctly from an RTOS task fed by an interrupt queue, that two tasks can share the CAN transmitter, and that a fault detected by the monitor is visible over UDS with the right status bits. Running the tester on the ECU itself made this possible before a second node exists.
+
 \paragraph{Debugging without a debugger.} Reading M4 memory and peripheral registers from Linux through \texttt{/dev/mem}, guided by symbol addresses from the ELF file, proved to be an effective technique on this platform, and it also allowed hypotheses to be tested by writing registers (for example enabling PLL4\_R to confirm the multiplexer theory) before changing any firmware.
 
 \paragraph{Evidence before conclusions.} Several intermediate hypotheses during bring-up were wrong: USB cables and adapters were suspected while simply re-seating the connectors resolved the connection problems, the clock calibration unit was suspected but found in bypass, and the role of the HSE kernel-clock gate could not be isolated because its disable register is secure-only. Recording which observations support each conclusion (Section~\ref{sec:bringup}) keeps the report honest about what was actually proven.
@@ -44,7 +46,8 @@ Internal loopback validates a large part of the design: the controller configura
 
 \begin{itemize}
   \item No two-node bus test yet; all hardware results are from internal loopback.
-  \item UDS and DTC management are designed but not implemented; the Control ECU only counts diagnostic requests.
+  \item Diagnostics are verified only against a tester on the same core; an external tester on a physical bus is still missing, and the hard reset has not been exercised.
+  \item DTCs are kept in RAM only (no non-volatile storage, no aging).
   \item The HAL tick of the M4 runs at about twice the intended rate in production mode.
   \item The FDCAN clock is reconfigured by the M4 rather than by the Linux device tree.
   \item Static analysis (cppcheck with MISRA rules) has not been run yet, and the firmware has not been measured for worst-case execution time or interrupt latency.

@@ -1,0 +1,26 @@
+# Control ECU (STM32MP157 Cortex-M4) - UDS self-test over FDCAN internal loopback
+# Tester ISO-TP link (TX 0x7E0, RX 0x7E8, BS=2, STmin=1 ms) runs on the same M4.
+# Captured from UART7 at 115200 baud, 2026-09-26.
+[TEST] UDS self-test over CAN loopback (tester 0x7E0 -> ECU 0x7E8)
+[CTRL] speed=149.5 km/h age=16ms pwm=59.8% | e2e ok=299 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=299 tx=300 busoff=0 qovf=0 uds=0 heap=9744
+[TEST]  1/14 TesterPresent                    PASS
+[TEST]  2/14 ReadDID F195 (ECU sends FF+CF)   PASS
+[TEST]  3/14 ReadDID x4 (ECU receives FF+CF)  PASS
+[TEST]  4/14 Unknown service -> NRC 11        PASS
+[TEST]  5/14 Unknown DID -> NRC 31            PASS
+[TEST]  6/14 Reset in default -> NRC 7E       PASS
+[TEST]  7/14 Session extended                 PASS
+[TEST]  8/14 Confirmed DTCs = 0               PASS
+[CTRL] fault OUTPUT_LOCAL  SET
+[TEST]  9/14 Confirmed DTCs = 1               PASS
+[TEST] 10/14 DTC list B1A00-11 0x2F           PASS
+[CTRL] fault OUTPUT_LOCAL  cleared
+[CTRL] speed=199.5 km/h age=10ms pwm=79.8% | e2e ok=399 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=1 | rx=429 tx=430 busoff=0 qovf=0 uds=30 heap=9744
+[TEST] 11/14 Clear all DTCs                   PASS
+[TEST] 12/14 Confirmed DTCs = 0 again         PASS
+[CTRL] soft reset: new operation cycle
+[TEST] 13/14 Soft reset                       PASS
+[TEST] 14/14 Session default                  PASS
+[TEST] UDS self-test finished: 14/14 passed
+[CTRL] speed=249.5 km/h age=10ms pwm=99.8% | e2e ok=499 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=537 tx=538 busoff=0 qovf=0 uds=38 heap=9744
+[CTRL] speed=49.3 km/h age=10ms pwm=19.7% | e2e ok=1099 lost=0 crc=0 rep=0 seq=0 | faults=0x00 dtc=0 | rx=1137 tx=1138 busoff=0 qovf=0 uds=38 heap=9744

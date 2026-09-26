@@ -52,26 +52,38 @@ Layered, AUTOSAR-inspired. Only the MCAL layer touches the HAL/registers.
 
 ```
 Application    sensor_app / control_app
-Services       uds_server, dtc_manager           (planned, hardware independent)
-Communication  isotp (done), can_if              (hardware independent)
+Services       uds_server, dtc_manager           (hardware independent)
+Communication  isotp, e2e, crc8, can_matrix      (hardware independent)
 MCAL           can_drv, adc_drv, gpio_drv, pwm_drv
 ```
 
 Hardware-independent modules (ISO-TP, UDS, DTC manager) are plain C so they can be unit
 tested on a PC.
 
-## UDS services (planned)
+## UDS services (Control ECU, physical 0x7E0 / functional 0x7DF -> 0x7E8)
 
-| SID | Service |
-|---|---|
-| `0x10` | Diagnostic Session Control |
-| `0x3E` | Tester Present |
-| `0x22` | Read Data By Identifier (speed, firmware version) |
-| `0x19` | Read DTC Information |
-| `0x14` | Clear Diagnostic Information |
-| `0x11` | ECU Reset |
+| SID | Service | Implemented |
+|---|---|---|
+| `0x10` | Diagnostic Session Control | `01` default, `03` extended; P2 = 50 ms, P2* = 5 s, S3 = 5 s |
+| `0x11` | ECU Reset | `01` hard (core reset, not yet exercised on hardware), `03` soft (new operation cycle); extended session only |
+| `0x14` | Clear Diagnostic Information | group `FFFFFF` |
+| `0x19` | Read DTC Information | `01` number of DTCs by status mask, `02` DTCs by status mask |
+| `0x22` | Read Data By Identifier | `F195` SW version, `0100` speed, `0101` active faults; several DIDs per request |
+| `0x3E` | Tester Present | `00`, with suppress-positive-response bit |
 
-Negative responses (e.g. NRC `0x11` serviceNotSupported, `0x31` requestOutOfRange) included.
+Negative responses `0x11`, `0x12`, `0x13`, `0x14`, `0x31`, `0x7E`, `0x7F`; for functional
+requests the NRCs required by ISO 14229 are suppressed.
+
+| Fault (monitor) | DTC | Confirmed after |
+|---|---|---|
+| Speed signal timeout | `U0100-87` (`C10087`) | 1 failed cycle |
+| Speed out of range | `P0501-00` (`050100`) | 3 consecutive cycles |
+| E2E error on 0x100 | `U0400-81` (`C40081`) | 3 |
+| Sensor ADC error | `P0500-96` (`050096`) | 3 |
+| Local output fault (USER1) | `B1A00-11` (`9A0011`) | 3 |
+
+DTC status bits follow ISO 14229-1 Annex D (availability mask `0x7F`). Codes use the SAE J2012
+layout; the mapping is project specific.
 
 ## Repository layout
 
@@ -83,7 +95,8 @@ control_ecu/CM4/     STM32MP157 Cortex-M4 firmware (FreeRTOS), loaded by Linux r
 common/can/          CAN matrix shared by all nodes
 common/e2e/          alive counter + CRC-8 protection (sender and receiver)
 common/isotp/        ISO 15765-2 transport layer (SF/FF/CF/FC, BS, STmin, N_Bs/N_Cr timeouts)
-common/              (planned) uds_server, dtc_manager
+common/uds/          UDS server (ISO 14229-1)
+common/dtc/          DTC manager with ISO 14229 status bits
 tests/               host unit tests (make)
 tester/              (planned) Python UDS client (SocketCAN)
 ```
@@ -146,6 +159,25 @@ FDCAN ISR → RTOS queue → E2E check → fault monitor → PWM output.
 | Output | PWM follows speed (e.g. 193.4 km/h → 77.3 %), no active faults |
 | Bring-up fixes | FreeRTOS SysTick handler, FDCAN glitch-free clock mux (see below) |
 
+### M3 — UDS diagnostics and DTC management on the Control ECU (FDCAN internal loopback) ✅
+
+A second ISO-TP link on the M4 plays the tester (TX 0x7E0, RX 0x7E8, BS 2, STmin 1 ms) and runs
+14 UDS requests over the CAN controller, checking every response. Full log:
+[docs/logs/m3_uds_selftest.log](docs/logs/m3_uds_selftest.log)
+
+```
+[TEST]  2/14 ReadDID F195 (ECU sends FF+CF)   PASS
+[TEST]  3/14 ReadDID x4 (ECU receives FF+CF)  PASS
+[TEST]  6/14 Reset in default -> NRC 7E       PASS
+[CTRL] fault OUTPUT_LOCAL  SET
+[TEST]  9/14 Confirmed DTCs = 1               PASS
+[TEST] 10/14 DTC list B1A00-11 0x2F           PASS
+[TEST] 11/14 Clear all DTCs                   PASS
+[TEST] UDS self-test finished: 14/14 passed
+```
+
+Sensor data kept flowing during the test with 0 E2E errors and 0 queue overflows.
+
 ## Bring-up notes (STM32MP157 Cortex-M4)
 
 Issues found while bringing up the Control ECU in production mode (Linux on the A7
@@ -171,9 +203,11 @@ Known open points:
 - [ ] Sensor ECU: verify on the real bus with a logic analyzer
 - [x] Control ECU: M4 firmware on OpenSTLinux (remoteproc), FDCAN owned by M4, FreeRTOS tasks,
       E2E check, timeout/range faults, safe-state PWM — verified in FDCAN internal loopback
-- [ ] M3: Control ECU <-> Sensor ECU on the real bus (SN65HVD230, logic analyzer)
+- [x] M3: UDS server + DTC manager on the Control ECU, 14/14 on-target UDS self-test in loopback
+- [ ] M4: Control ECU <-> Sensor ECU on the real bus (SN65HVD230, logic analyzer)
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
-- [ ] UDS server with services above
-- [ ] DTC manager (timeout, out-of-range, injected faults)
+- [x] UDS server with services above (11 host unit tests)
+- [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)
 - [ ] Python tester on Linux (SocketCAN)
-- [ ] Unit tests, cppcheck MISRA checks, demo video
+- [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
+- [ ] cppcheck MISRA checks, demo video

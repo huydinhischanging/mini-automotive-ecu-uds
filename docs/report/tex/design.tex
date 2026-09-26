@@ -127,8 +127,8 @@ Figure~\ref{fig:layers} shows the layering. MCAL drivers wrap the STM32 HAL; eve
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[font=\small, node distance=0.25cm]
-  \node[layer, fill=green!8] (app) {\textbf{Application}: \texttt{sensor\_app}, \texttt{control\_app}};
-  \node[layer, fill=orange!10, below=of app] (svc) {\textbf{Services}: \texttt{uds\_server}, \texttt{dtc\_manager} \textit{(planned)}};
+  \node[layer, fill=green!8] (app) {\textbf{Application}: \texttt{sensor\_app}, \texttt{control\_app}, \texttt{diag\_app}};
+  \node[layer, fill=orange!10, below=of app] (svc) {\textbf{Services}: \texttt{uds\_server}, \texttt{dtc\_manager}};
   \node[layer, fill=yellow!12, below=of svc] (com) {\textbf{Communication}: \texttt{isotp}, \texttt{e2e}, \texttt{crc8}, \texttt{can\_matrix}};
   \node[layer, fill=blue!8, below=of com] (mcal) {\textbf{MCAL}: \texttt{can\_drv}, \texttt{adc\_drv}, \texttt{gpio\_drv}, \texttt{io\_drv}};
   \node[layer, fill=gray!15, below=of mcal] (hal) {STM32Cube HAL / registers};
@@ -181,8 +181,9 @@ The Control ECU runs FreeRTOS~\cite{FreeRTOS} on the Cortex-M4. Figure~\ref{fig:
 
 \begin{itemize}
   \item \textbf{Interrupt level.} The FDCAN receive callback copies each frame into an RTOS queue and returns; a full queue is counted rather than blocking.
-  \item \textbf{ComRx task} (above-normal priority) runs the E2E check on 0x100, updates a shared view of the sensor signal under a mutex and counts E2E outcomes. Frames 0x7E0/0x7DF are routed to the future UDS server.
-  \item \textbf{Monitor task} (normal priority, 10\,ms period with \texttt{osDelayUntil}) evaluates five faults, applies the safe state, runs bus-off recovery and prints a status line every second.
+  \item \textbf{ComRx task} (above-normal priority) runs the E2E check on 0x100, updates a shared view of the sensor signal under a mutex and counts E2E outcomes. Frames 0x7E0 and 0x7DF are passed to the diagnostic module (ISO-TP and UDS). The task waits on the queue with a 2\,ms timeout so that the ISO-TP and UDS timers also run when no frame arrives; all ISO-TP processing therefore happens in this single task.
+  \item \textbf{Monitor task} (normal priority, 10\,ms period with \texttt{osDelayUntil}) evaluates five faults, reports every result to the DTC manager, applies the safe state, runs bus-off recovery and prints a status line every second.
+  \item \textbf{Shared resources.} Both tasks transmit on CAN (sensor frames in loopback and UDS responses); since the HAL function that fills the TX FIFO is not re-entrant, transmissions go through one mutex-protected function. A second mutex keeps log lines of the two tasks from interleaving, and the DTC manager is protected by its own mutex.
 \end{itemize}
 
 Table~\ref{tab:faults} lists the monitored faults. When a fault that invalidates the speed signal is active, the output is forced to 0\,\% instead of using stale or implausible data. The E2E fault heals only after ten consecutive valid frames to avoid chattering.
@@ -205,7 +206,7 @@ OUTPUT\_LOCAL & toggled by button USER1 (simulated actuator fault) & yes \\
 \end{tabularx}
 \end{table}
 
-In a later milestone each fault becomes a DTC with an ISO~14229 status byte in the DTC manager, readable and clearable over UDS.
+Each fault is mapped to a DTC (Section~\ref{sec:diag_design}).
 
 \section{Communication Modules}
 
@@ -224,6 +225,66 @@ The ISO-TP module keeps independent sender and receiver state machines per link.
   \item N\_Bs and N\_Cr timeouts, a limit on consecutive FC.WAIT frames and FC.OVFLW handling abort a transfer with an explicit result code.
 \end{itemize}
 
+\section{Diagnostics Design}
+\label{sec:diag_design}
+
+\subsection{UDS server}
+
+The UDS server is a transport-independent function that takes a complete request and returns the response; the ISO-TP link of the Control ECU (request 0x7E0, response 0x7E8) and the functional address 0x7DF (single frames only) feed it. Table~\ref{tab:uds} lists the implemented services.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Implemented UDS services}
+\label{tab:uds}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{SID} & \textbf{Service} & \textbf{Supported parameters} \\
+\midrule
+0x10 & DiagnosticSessionControl & 01 default, 03 extended; response carries P2 = 50\,ms and P2* = 5\,s \\
+0x11 & ECUReset & 01 hard (core reset), 03 soft (new operation cycle); extended session only \\
+0x14 & ClearDiagnosticInformation & group 0xFFFFFF (all DTCs) \\
+0x19 & ReadDTCInformation & 01 number of DTCs by status mask, 02 DTCs by status mask \\
+0x22 & ReadDataByIdentifier & 0xF195 software version, 0x0100 speed, 0x0101 active faults; several DIDs per request \\
+0x3E & TesterPresent & 00, with suppress-positive-response bit \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Design decisions:
+\begin{itemize}[nosep]
+  \item A non-default session falls back to the default session after 5\,s without a request (S3 timer).
+  \item ECU reset is only accepted in the extended session (NRC 0x7E otherwise), and it is executed only after the ISO-TP layer confirms that the positive response has been transmitted, so the tester always receives the answer.
+  \item For functionally addressed requests the negative responses 0x11, 0x12, 0x31, 0x7E and 0x7F are suppressed, as ISO~14229 requires, so that ECUs which do not support a service stay silent on a broadcast.
+  \item \texttt{ReadDataByIdentifier} skips unknown DIDs in a multi-DID request and answers NRC 0x31 only if none is known; a response that would not fit the buffer yields NRC 0x14.
+\end{itemize}
+
+\subsection{DTC manager}
+
+The DTC manager keeps, for each DTC, the ISO~14229-1 status byte (Annex~D) and a failure counter. Monitors report a result every cycle. A failed result sets \textit{testFailed}, \textit{testFailedThisOperationCycle}, \textit{pendingDTC} and \textit{testFailedSinceLastClear}; \textit{confirmedDTC} is set once the configured number of consecutive failed results is reached, and a passed result resets the counter. At the start of an operation cycle \textit{pendingDTC} is kept only if the test failed in the cycle that ended. The storage is RAM only; non-volatile storage and aging are future work. Table~\ref{tab:dtcs} gives the DTC mapping; the codes use the SAE J2012 layout (two-byte code plus failure type byte), and the mapping itself is project specific.
+
+\begin{table}[H]
+\centering
+\small
+\caption{DTC mapping of the Control ECU}
+\label{tab:dtcs}
+\begin{tabularx}{\textwidth}{@{}llXc@{}}
+\toprule
+\textbf{Fault} & \textbf{DTC} & \textbf{Meaning} & \textbf{Confirm after} \\
+\midrule
+SPEED\_TIMEOUT & U0100-87 (0xC10087) & lost communication with Sensor ECU, missing message & 1 \\
+SPEED\_RANGE & P0501-00 (0x050100) & vehicle speed sensor range/performance & 3 \\
+SPEED\_E2E & U0400-81 (0xC40081) & invalid data received from Sensor ECU & 3 \\
+SENSOR\_ADC & P0500-96 (0x050096) & speed sensor component internal failure & 3 \\
+OUTPUT\_LOCAL & B1A00-11 (0x9A0011) & output driver circuit short to ground (simulated) & 3 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{On-target self-test}
+
+Unit tests cover the modules in isolation, but not their integration with the CAN controller, the RTOS tasks and the interrupt path. In loopback builds the Control ECU therefore instantiates a second ISO-TP link that plays the tester (transmitting on 0x7E0, receiving on 0x7E8, with block size 2 and STmin 1\,ms so that flow control is exercised). A small sequencer sends a fixed list of requests through the real FDCAN controller, compares each response with an expected prefix and logs PASS or FAIL. Steps can inject or remove the local fault, which makes the full chain from a monitor to a confirmed DTC observable over UDS.
+
 \section{Verification Strategy}
 
 Verification proceeds bottom-up:
@@ -231,6 +292,6 @@ Verification proceeds bottom-up:
   \item \textbf{Unit tests on a PC} for all hardware-independent modules, using a fake CAN driver and a fake clock. Compiled with \texttt{-Wall -Wextra -Wpedantic -Wshadow -Wconversion}.
   \item \textbf{FDCAN internal loopback} on each ECU, which exercises bit-timing configuration, filters, interrupts and the full software path without a transceiver.
   \item \textbf{Two-node bus} with transceivers, checked with a logic analyser (next milestone).
-  \item \textbf{System test} with the UDS tester (final milestone).
+  \item \textbf{On-target UDS self-test} in loopback (M3), then \textbf{system test} with an external tester on the physical bus.
 \end{enumerate}
 Each hardware test records the UART log as evidence, together with a pass criterion defined before the run.

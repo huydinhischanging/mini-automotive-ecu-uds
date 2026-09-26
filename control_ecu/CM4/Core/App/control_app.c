@@ -2,7 +2,7 @@
  * @file    control_app.c
  * @brief   Control ECU application, see control_app.h.
  *
- * Fault monitoring (DTC storage comes with the DTC manager in a later step):
+ * Fault monitoring (each fault is reported to the DTC manager every cycle):
  *   SPEED_TIMEOUT  no valid 0x100 for SENSOR_SPEED_TIMEOUT_MS
  *   SPEED_RANGE    received speed above SENSOR_SPEED_MAX_X10
  *   SPEED_E2E      CRC / sequence error on 0x100, healed after 10 good frames
@@ -12,6 +12,7 @@
  */
 #include "control_app.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 
 #include "cmsis_os.h"
@@ -19,6 +20,8 @@
 
 #include "can_drv.h"
 #include "can_matrix.h"
+#include "diag_app.h"
+#include "dtc_manager.h"
 #include "e2e.h"
 #include "io_drv.h"
 
@@ -84,24 +87,29 @@ static SensorView_t       s_view;
 static E2e_RxState_t      s_e2eSpeed;
 static E2e_RxState_t      s_e2eAlive;
 static volatile uint32_t  s_rxQueueOverflow = 0U;
+static osMutexId_t        s_txMutex;     /* CanDrv_Write from Monitor and ComRx */
+static osMutexId_t        s_logMutex;    /* keeps log lines of both tasks intact */
+static volatile bool      s_localInject = false;
 
 static bool     s_faults[FAULT_COUNT];
 static uint32_t s_startTick;
 
 static const osThreadAttr_t k_comRxAttr =
 {
-    .name = "ComRx", .stack_size = 256U * 4U, .priority = osPriorityAboveNormal
+    .name = "ComRx", .stack_size = 512U * 4U, .priority = osPriorityAboveNormal
 };
 static const osThreadAttr_t k_monitorAttr =
 {
     .name = "Monitor", .stack_size = 512U * 4U, .priority = osPriorityNormal
 };
 
-/* 0x100-0x101 sensor data, 0x7DF/0x7E0 diagnostics (0x7DF = OBD functional). */
+/* 0x100-0x101 sensor data; 0x7DF (functional) .. 0x7E0 (physical) diagnostic
+ * requests. The range reaches 0x7E8 so that the loopback self-test tester can
+ * receive the ECU responses; other IDs in between are ignored in software. */
 static const CanDrv_Filter_t k_filters[] =
 {
     { CANID_SENSOR_SPEED, CANID_SENSOR_ALIVE },
-    { 0x7DFU,             CANID_UDS_REQ_CONTROL }
+    { 0x7DFU,             CANID_UDS_RESP_CONTROL }
 };
 
 /* ---------------------------------------------------------------------------
@@ -169,8 +177,10 @@ static void ComRxTask(void *argument)
 
     for (;;)
     {
-        if (osMessageQueueGet(s_rxQueue, &frame, NULL, osWaitForever) != osOK)
+        /* 2 ms timeout: ISO-TP and UDS timers must run even without traffic. */
+        if (osMessageQueueGet(s_rxQueue, &frame, NULL, 2U) != osOK)
         {
+            DiagApp_MainFunction();
             continue;
         }
 
@@ -189,7 +199,8 @@ static void ComRxTask(void *argument)
 
             case CANID_UDS_REQ_CONTROL:
             case 0x7DFU:
-                /* ISO-TP + UDS server plugs in here (next step). */
+            case CANID_UDS_RESP_CONTROL:
+                DiagApp_OnFrame(&frame);
                 osMutexAcquire(s_viewMutex, osWaitForever);
                 s_view.udsRequests++;
                 osMutexRelease(s_viewMutex);
@@ -198,6 +209,7 @@ static void ComRxTask(void *argument)
             default:
                 break;
         }
+        DiagApp_MainFunction();
     }
 }
 
@@ -209,7 +221,7 @@ static void SetFault(Fault_t fault, bool active)
     if (s_faults[fault] != active)
     {
         s_faults[fault] = active;
-        printf("[CTRL] fault %-13s %s\r\n", k_faultNames[fault], active ? "SET" : "cleared");
+        ControlApp_Log("[CTRL] fault %-13s %s\r\n", k_faultNames[fault], active ? "SET" : "cleared");
     }
 }
 
@@ -227,7 +239,7 @@ static void HandleButton(void)
         else if (!latched)
         {
             latched = true;
-            SetFault(FAULT_OUTPUT_LOCAL, !s_faults[FAULT_OUTPUT_LOCAL]);
+            s_localInject = !s_localInject;
         }
         else
         {
@@ -252,13 +264,13 @@ static void LogStatus(const SensorView_t *v, uint32_t ageMs, uint16_t duty)
         mask |= (s_faults[i] ? 1UL : 0UL) << i;
     }
 
-    printf("[CTRL] speed=%u.%u km/h age=%lums pwm=%u.%u%% | e2e ok=%lu lost=%lu crc=%lu rep=%lu seq=%lu"
-           " | faults=0x%02lx | rx=%lu tx=%lu busoff=%lu qovf=%lu uds=%lu heap=%u\r\n",
+    ControlApp_Log("[CTRL] speed=%u.%u km/h age=%lums pwm=%u.%u%% | e2e ok=%lu lost=%lu crc=%lu rep=%lu seq=%lu"
+           " | faults=0x%02lx dtc=%u | rx=%lu tx=%lu busoff=%lu qovf=%lu uds=%lu heap=%u\r\n",
            (unsigned)(v->speedX10 / 10U), (unsigned)(v->speedX10 % 10U),
            (unsigned long)ageMs, (unsigned)(duty / 10U), (unsigned)(duty % 10U),
            (unsigned long)v->e2e.ok, (unsigned long)v->e2e.lost, (unsigned long)v->e2e.crc,
            (unsigned long)v->e2e.repeated, (unsigned long)v->e2e.wrongSeq,
-           (unsigned long)mask, (unsigned long)bus.rxCount, (unsigned long)bus.txQueued,
+           (unsigned long)mask, (unsigned)DiagApp_ConfirmedDtcCount(), (unsigned long)bus.rxCount, (unsigned long)bus.txQueued,
            (unsigned long)bus.busOffCount, (unsigned long)s_rxQueueOverflow,
            (unsigned long)v->udsRequests, (unsigned)xPortGetFreeHeapSize());
 }
@@ -277,7 +289,7 @@ static void SendFakeSensorFrame(void)
     frame.data[0] = (uint8_t)(speed >> 8U);
     frame.data[1] = (uint8_t)(speed & 0xFFU);
     E2e_Protect(frame.data, &counter);
-    (void)CanDrv_Write(&frame);
+    (void)ControlApp_CanSend(frame.id, frame.data, frame.dlc);
 }
 #endif
 
@@ -318,6 +330,13 @@ static void MonitorTask(void *argument)
         SetFault(FAULT_SPEED_E2E, view.e2eError);
         SetFault(FAULT_SENSOR_ADC, (view.sensorStatus & SENSOR_STATUS_ADC_ERROR) != 0U);
         HandleButton();
+        SetFault(FAULT_OUTPUT_LOCAL, s_localInject);
+
+        /* Every monitor ran this cycle: report all results to the DTC manager. */
+        for (uint8_t i = 0U; i < (uint8_t)FAULT_COUNT; i++)
+        {
+            DiagApp_ReportFault(i, s_faults[i]);
+        }
 
         /* Safe state: never drive the output from stale or implausible data. */
         speedFault = s_faults[FAULT_SPEED_TIMEOUT] || s_faults[FAULT_SPEED_RANGE] ||
@@ -350,7 +369,9 @@ bool ControlApp_Init(void)
 
     s_rxQueue   = osMessageQueueNew(RX_QUEUE_LEN, sizeof(CanDrv_Frame_t), NULL);
     s_viewMutex = osMutexNew(NULL);
-    if ((s_rxQueue == NULL) || (s_viewMutex == NULL))
+    s_txMutex   = osMutexNew(NULL);
+    s_logMutex  = osMutexNew(NULL);
+    if ((s_rxQueue == NULL) || (s_viewMutex == NULL) || (s_txMutex == NULL) || (s_logMutex == NULL))
     {
         printf("[CTRL] RTOS object creation failed (heap too small?)\r\n");
         return false;
@@ -369,6 +390,12 @@ bool ControlApp_Init(void)
         return false;
     }
 
+    if (!DiagApp_Init(CONTROL_APP_CAN_LOOPBACK != 0U))
+    {
+        printf("[CTRL] diagnostics init failed\r\n");
+        return false;
+    }
+
     if ((osThreadNew(ComRxTask, NULL, &k_comRxAttr) == NULL) ||
         (osThreadNew(MonitorTask, NULL, &k_monitorAttr) == NULL))
     {
@@ -381,4 +408,76 @@ bool ControlApp_Init(void)
            (CONTROL_APP_CAN_LOOPBACK != 0U) ? "INTERNAL LOOPBACK" : "NORMAL",
            (unsigned long)bus.kernelClockHz, (unsigned)xPortGetFreeHeapSize());
     return true;
+}
+
+bool ControlApp_CanSend(uint16_t id, const uint8_t *data, uint8_t dlc)
+{
+    CanDrv_Frame_t frame;
+    bool           ok;
+
+    if ((data == NULL) || (dlc > CANDRV_MAX_DLC))
+    {
+        return false;
+    }
+    frame.id  = id;
+    frame.dlc = dlc;
+    for (uint8_t i = 0U; i < dlc; i++)
+    {
+        frame.data[i] = data[i];
+    }
+
+    /* HAL_FDCAN_AddMessageToTxFifoQ is not re-entrant: serialise both tasks. */
+    (void)osMutexAcquire(s_txMutex, osWaitForever);
+    ok = (CanDrv_Write(&frame) == CANDRV_OK);
+    (void)osMutexRelease(s_txMutex);
+    return ok;
+}
+
+uint16_t ControlApp_GetSpeedX10(void)
+{
+    uint16_t speed;
+
+    (void)osMutexAcquire(s_viewMutex, osWaitForever);
+    speed = s_view.speedX10;
+    (void)osMutexRelease(s_viewMutex);
+    return speed;
+}
+
+uint8_t ControlApp_GetFaultMask(void)
+{
+    uint8_t mask = 0U;
+
+    for (uint8_t i = 0U; i < (uint8_t)FAULT_COUNT; i++)
+    {
+        if (s_faults[i])
+        {
+            mask |= (uint8_t)(1U << i);
+        }
+    }
+    return mask;
+}
+
+void ControlApp_SetLocalFaultInjection(bool active)
+{
+    s_localInject = active;
+}
+
+/* UDS 0x11 03: restart the application without resetting the core. */
+void ControlApp_SoftReset(void)
+{
+    E2e_InitRx(&s_e2eSpeed);
+    E2e_InitRx(&s_e2eAlive);
+    DtcMgr_StartOperationCycle();
+    ControlApp_Log("[CTRL] soft reset: new operation cycle\r\n");
+}
+
+void ControlApp_Log(const char *fmt, ...)
+{
+    va_list args;
+
+    (void)osMutexAcquire(s_logMutex, osWaitForever);
+    va_start(args, fmt);
+    (void)vprintf(fmt, args);
+    va_end(args);
+    (void)osMutexRelease(s_logMutex);
 }

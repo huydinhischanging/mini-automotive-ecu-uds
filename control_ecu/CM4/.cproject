@@ -34,6 +34,8 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.includepaths.1679772929" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.includepaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
+									<listOptionValue builtIn="false" value="../../../common/uds"/>
+									<listOptionValue builtIn="false" value="../../../common/dtc"/>
 									<listOptionValue builtIn="false" value="../Core/Mcal"/>
 									<listOptionValue builtIn="false" value="../Core/App"/>
 									<listOptionValue builtIn="false" value="../../../common/can"/>
@@ -61,6 +63,8 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1478961544" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
+									<listOptionValue builtIn="false" value="../../../common/uds"/>
+									<listOptionValue builtIn="false" value="../../../common/dtc"/>
 									<listOptionValue builtIn="false" value="../Core/Mcal"/>
 									<listOptionValue builtIn="false" value="../Core/App"/>
 									<listOptionValue builtIn="false" value="../../../common/can"/>
@@ -140,6 +144,8 @@
 								<option id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.debuglevel.2049438331" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.debuglevel" value="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.debuglevel.value.g0" valueType="enumerated"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.includepaths.593222387" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.assembler.option.includepaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
+									<listOptionValue builtIn="false" value="../../../common/uds"/>
+									<listOptionValue builtIn="false" value="../../../common/dtc"/>
 									<listOptionValue builtIn="false" value="../Core/Mcal"/>
 									<listOptionValue builtIn="false" value="../Core/App"/>
 									<listOptionValue builtIn="false" value="../../../common/can"/>
@@ -166,6 +172,8 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.1647338467" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
+									<listOptionValue builtIn="false" value="../../../common/uds"/>
+									<listOptionValue builtIn="false" value="../../../common/dtc"/>
 									<listOptionValue builtIn="false" value="../Core/Mcal"/>
 									<listOptionValue builtIn="false" value="../Core/App"/>
 									<listOptionValue builtIn="false" value="../../../common/can"/>

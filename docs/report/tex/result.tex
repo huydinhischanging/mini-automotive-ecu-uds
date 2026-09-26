@@ -39,13 +39,15 @@ The hardware-independent modules are tested on a PC with a minimal self-written 
 \midrule
 ISO-TP & 26 & 115 & SF/FF/CF/FC in both directions, padding, block size, STmin in ms and \textmu s encoding, N\_Bs and N\_Cr timeouts, FC.WAIT limit, FC.OVFLW, receive buffer overflow, wrong sequence number, SF interrupting a segmented reception, sequence number wrap-around (200 bytes), driver-busy retry, and a 4095-byte end-to-end transfer between two links on a simulated bus \\
 E2E & 8 & 58 & CRC-8 catalogue value (\texttt{"123456789"} $\rightarrow$ 0x4B), counter wrap 15$\rightarrow$0, single-bit corruption, repeated frame, lost frames and resynchronisation, short frame \\
+DTC manager & 11 & 35 & status bits after pass/fail, confirmation after consecutive failures with debounce reset, healing keeps history bits, operation-cycle rules for \textit{pendingDTC}, clear, read by status mask, balanced lock callbacks \\
+UDS server & 11 & 69 & every service with positive and negative responses, suppress-positive-response bit, S3 session timeout, multi-DID read, response-too-long, reset only in the extended session and only after the response, functional-addressing NRC suppression \\
 \midrule
-\textbf{Total} & \textbf{34} & \textbf{173} & all pass, 0 failures \\
+\textbf{Total} & \textbf{56} & \textbf{277} & all pass, 0 failures \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The 4095-byte end-to-end test also checks the exact frame count: one first frame, 585 consecutive frames and 74 flow-control frames for a block size of 8. An error in the expected count found while writing this test (584 instead of 585 consecutive frames, because $4089 = 584 \times 7 + 1$) illustrates why such arithmetic belongs in automated tests rather than in comments.
+The 4095-byte end-to-end test also checks the exact frame count: one first frame, 585 consecutive frames and 74 flow-control frames for a block size of 8. An error in the expected count found while writing this test (584 instead of 585 consecutive frames, because $4089 = 584 \times 7 + 1$) illustrates why such arithmetic belongs in automated tests rather than in comments. Similarly, one DTC test initially expected a DTC with status 0x00 to be reported for the mask 0xFF; ISO~14229 reports a DTC only if \texttt{(status \& mask) != 0}, so the implementation was right and the expectation was corrected.
 
 \section{Milestone M1: Sensor ECU in Loopback}
 
@@ -93,6 +95,53 @@ Signal freshness & \texttt{age = 10\,ms} (timeout threshold 100\,ms) & \cmark \\
 Output & PWM tracks speed, e.g. 193.4\,km/h $\rightarrow$ 77.3\,\% & \cmark \\
 Faults & timeout active at start-up, cleared automatically once data arrives; no active fault afterwards & \cmark \\
 RTOS & 0 queue overflows; 11\,032 bytes of the 16\,KB heap free & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Milestone M3: UDS and DTC Management on the Control ECU}
+
+The UDS server, the DTC manager and an ISO-TP link were integrated into the Control ECU, and the on-target self-test described in Section~\ref{sec:diag_design} was run in FDCAN internal loopback. Listing~\ref{lst:m3} shows the log; the complete log is stored in the repository (\texttt{docs/logs/m3\_uds\_selftest.log}). All 14 steps passed on the first hardware run.
+
+\begin{lstlisting}[language={},numbers=none,caption={On-target UDS self-test on the Cortex-M4 (UART7 log, abridged)},label={lst:m3}]
+[TEST]  1/14 TesterPresent                    PASS
+[TEST]  2/14 ReadDID F195 (ECU sends FF+CF)   PASS
+[TEST]  3/14 ReadDID x4 (ECU receives FF+CF)  PASS
+[TEST]  4/14 Unknown service -> NRC 11        PASS
+[TEST]  5/14 Unknown DID -> NRC 31            PASS
+[TEST]  6/14 Reset in default -> NRC 7E       PASS
+[TEST]  7/14 Session extended                 PASS
+[TEST]  8/14 Confirmed DTCs = 0               PASS
+[CTRL] fault OUTPUT_LOCAL  SET
+[TEST]  9/14 Confirmed DTCs = 1               PASS
+[TEST] 10/14 DTC list B1A00-11 0x2F           PASS
+[CTRL] fault OUTPUT_LOCAL  cleared
+[TEST] 11/14 Clear all DTCs                   PASS
+[TEST] 12/14 Confirmed DTCs = 0 again         PASS
+[CTRL] soft reset: new operation cycle
+[TEST] 13/14 Soft reset                       PASS
+[TEST] 14/14 Session default                  PASS
+[TEST] UDS self-test finished: 14/14 passed
+[CTRL] speed=249.5 km/h age=10ms pwm=99.8% | e2e ok=499 lost=0 crc=0 rep=0
+       seq=0 | faults=0x00 dtc=0 | rx=537 tx=538 busoff=0 qovf=0 uds=38 heap=9744
+\end{lstlisting}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Milestone M3 results}
+\label{tab:m3}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+\textbf{Check} & \textbf{Observation} & \textbf{Result} \\
+\midrule
+Segmented transfers & 13-byte response from the ECU and 9-byte request to the ECU, both with FF/CF and flow control & \cmark \\
+Negative responses & NRC 0x11 (unknown service), 0x31 (unknown DID), 0x7E (reset in default session) & \cmark \\
+Fault to DTC & local fault injected $\rightarrow$ DTC B1A00-11 confirmed with status 0x2F (TF, TFTOC, PDTC, CDTC, TFSLC) & \cmark \\
+Clear & 0x14 FFFFFF $\rightarrow$ no confirmed DTC & \cmark \\
+Sessions and soft reset & extended session with P2/P2*, soft reset starts a new operation cycle & \cmark \\
+No side effects & 38 diagnostic frames exchanged while sensor data kept flowing: 0 E2E errors, 0 queue overflows; 9.7\,KB heap free & \cmark \\
+Hard reset (0x11 01) & cannot be exercised by a tester running on the same core & open \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -157,7 +206,7 @@ The first run of the Control ECU on the DK1 did nothing observable. No debugger 
 \textbf{Firmware} & \textbf{Code} & \textbf{RAM (data+bss)} & \textbf{Available} \\
 \midrule
 Sensor ECU (STM32G431) & 31.6\,KB & 2.5\,KB & 128\,KB flash / 32\,KB RAM \\
-Control ECU (M4, \texttt{-O0}) & 67.5\,KB & 22.9\,KB & 128\,KB code SRAM / 128\,KB data SRAM \\
+Control ECU (M4, \texttt{-O0}, with UDS/DTC) & 76.5\,KB & 24.8\,KB & 128\,KB code SRAM / 128\,KB data SRAM \\
 \bottomrule
 \end{tabular}
 \end{table}
