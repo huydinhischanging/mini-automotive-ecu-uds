@@ -5,8 +5,12 @@ store diagnostic trouble codes (DTCs) and answer a diagnostic tester using **UDS
 over **ISO-TP (ISO 15765-2)**.
 
 > 🚧 Work in progress. See [Roadmap](#roadmap) for current status.
->
-> 📄 Technical report (interim, milestones M1–M2): [docs/report/main.pdf](docs/report/main.pdf)
+
+[![Demo video: STM32 ECU network with CAN, UDS, DTC and ISO-TP](docs/images/demo_thumbnail.png)](https://www.youtube.com/watch?v=Ocq1K0BO8kM)
+
+▶ **Demo video (3 min):** https://www.youtube.com/watch?v=Ocq1K0BO8kM
+
+> 📄 Technical report (milestones M1–M5): [docs/report/main.pdf](docs/report/main.pdf)
 
 ## System overview
 
@@ -280,4 +284,4 @@ Known open points:
 - [ ] Python tester on Linux (SocketCAN)
 - [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
 - [x] cppcheck + MISRA C:2012 addon: no findings, deviations documented
-- [ ] Demo video
+- [x] Demo video: https://www.youtube.com/watch?v=Ocq1K0BO8kM
