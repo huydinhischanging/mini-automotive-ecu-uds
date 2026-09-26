@@ -1,0 +1,48 @@
+\chapter{Build, Deployment and Diagnosis Procedures}
+\label{app:procedures}
+
+\section{Host unit tests}
+
+\begin{lstlisting}[language=bash,numbers=none,caption={Running the unit tests}]
+cd tests
+make            # builds and runs test_isotp and test_e2e
+\end{lstlisting}
+On Windows the MSYS2 UCRT64 \texttt{gcc} and \texttt{make} must be on the \texttt{PATH}; the makefile detects MinGW and disables the undefined-behaviour sanitiser, which MinGW does not provide.
+
+\section{Sensor ECU}
+
+The project in \texttt{sensor\_ecu/} is built in STM32CubeIDE and flashed through the on-board ST-LINK, for example:
+\begin{lstlisting}[language=bash,numbers=none,caption={Flashing the NUCLEO-G431RB}]
+STM32_Programmer_CLI -c port=SWD mode=UR -w Debug/sensor_ecu.elf -v -rst
+\end{lstlisting}
+The log is printed on the ST-LINK virtual COM port at 115200\,baud, 8N1.
+
+\section{Control ECU (Cortex-M4 on the DK1)}
+
+The DK1 boots Linux from the SD card with both BOOT switches ON. Connected to the PC through the USB-C OTG port, it exposes a network interface and is reachable at \texttt{192.168.7.1}.
+\begin{lstlisting}[language=bash,numbers=none,caption={Loading and starting the M4 firmware}]
+scp control_ecu_CM4.elf root@192.168.7.1:/lib/firmware/control_ecu.elf
+ssh root@192.168.7.1
+R=/sys/class/remoteproc/remoteproc0
+echo control_ecu.elf > $R/firmware
+echo start > $R/state          # "stop" to halt the M4
+\end{lstlisting}
+The M4 log is printed on UART7 (Arduino connector D1 = TX, D0 = RX) at 115200\,baud.
+
+\section{Reading M4 memory and registers from Linux}
+
+The technique used in Section~\ref{sec:bringup}: find the address of a variable in the ELF file, translate the M4 SRAM address (0x1002\,xxxx) to the physical alias seen by the A7 (0x3002\,xxxx) and read it through \texttt{/dev/mem}.
+\begin{lstlisting}[language=bash,numbers=none,caption={Locating symbols and structure offsets}]
+arm-none-eabi-nm control_ecu_CM4.elf | grep -E " (xTickCount|hfdcan1)$"
+arm-none-eabi-gdb -batch -ex "print/x (int)&hfdcan1.State - (int)&hfdcan1" control_ecu_CM4.elf
+\end{lstlisting}
+\begin{lstlisting}[language=Python,numbers=none,caption={Reading a 32-bit value from M4 SRAM or a peripheral (run on the DK1)}]
+import mmap, os, struct
+fd  = os.open("/dev/mem", os.O_RDONLY | os.O_SYNC)
+ram = mmap.mmap(fd, 0x10000, mmap.MAP_SHARED, mmap.PROT_READ, offset=0x30020000)
+can = mmap.mmap(fd, 0x1000,  mmap.MAP_SHARED, mmap.PROT_READ, offset=0x4400E000)
+rd  = lambda m, off: struct.unpack("<I", m[off:off + 4])[0]
+print("xTickCount =", rd(ram, 0x10025104 - 0x10020000))
+print("FDCAN CCCR = 0x%08x" % rd(can, 0x18))
+\end{lstlisting}
+Peripheral registers of a stopped M4 may be unclocked; reading them then raises a bus error. Oscillator-disable registers of the RCC are secure-only when \texttt{RCC\_TZCR.TZEN = 1} and cannot be written from Linux.

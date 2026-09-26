@@ -1,0 +1,163 @@
+\chapter{IMPLEMENTATION AND RESULTS}
+\label{ch:results}
+
+\section{Development Environment}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Tools}
+\label{tab:tools}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Tool} & \textbf{Use} \\
+\midrule
+STM32CubeMX 6.18 & peripheral, clock and middleware configuration of both projects \\
+STM32CubeIDE 2.2 / GNU Arm toolchain 14.3 & firmware build \\
+STM32CubeProgrammer CLI & flashing the NUCLEO-G431RB over SWD \\
+OpenSTLinux (kernel 6.6), \texttt{remoteproc}, SSH over USB & loading and starting the M4 firmware on the DK1 \\
+MSYS2 GCC and GNU Make & host unit tests \\
+Git / GitHub & version control; each verified milestone is tagged \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The M4 firmware is deployed by copying the ELF file to \texttt{/lib/firmware} and writing to the \texttt{remoteproc} sysfs interface (Appendix~\ref{app:procedures}).
+
+\section{Unit Tests}
+
+The hardware-independent modules are tested on a PC with a minimal self-written test harness (no external framework), a fake CAN driver that records every transmitted frame and can simulate a busy driver, and a fake millisecond clock that only advances when a test says so. Table~\ref{tab:unittests} summarises the suites.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Unit test results}
+\label{tab:unittests}
+\begin{tabularx}{\textwidth}{@{}lccX@{}}
+\toprule
+\textbf{Suite} & \textbf{Tests} & \textbf{Checks} & \textbf{Scope} \\
+\midrule
+ISO-TP & 26 & 115 & SF/FF/CF/FC in both directions, padding, block size, STmin in ms and \textmu s encoding, N\_Bs and N\_Cr timeouts, FC.WAIT limit, FC.OVFLW, receive buffer overflow, wrong sequence number, SF interrupting a segmented reception, sequence number wrap-around (200 bytes), driver-busy retry, and a 4095-byte end-to-end transfer between two links on a simulated bus \\
+E2E & 8 & 58 & CRC-8 catalogue value (\texttt{"123456789"} $\rightarrow$ 0x4B), counter wrap 15$\rightarrow$0, single-bit corruption, repeated frame, lost frames and resynchronisation, short frame \\
+\midrule
+\textbf{Total} & \textbf{34} & \textbf{173} & all pass, 0 failures \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The 4095-byte end-to-end test also checks the exact frame count: one first frame, 585 consecutive frames and 74 flow-control frames for a block size of 8. An error in the expected count found while writing this test (584 instead of 585 consecutive frames, because $4089 = 584 \times 7 + 1$) illustrates why such arithmetic belongs in automated tests rather than in comments.
+
+\section{Milestone M1: Sensor ECU in Loopback}
+
+The Sensor ECU firmware was flashed with the STM32CubeProgrammer CLI and run in FDCAN internal loopback, where the controller receives its own frames. The pass criterion was: transmit rate as designed, every 0x100 frame received back, no dropped frame, no bus-off, and a stable ADC reading that follows the potentiometer. Figure~\ref{fig:m1} shows the log and Table~\ref{tab:m1} the results.
+
+\reportimage{m1_sensor_loopback_uart.png}{0.95}{Sensor ECU log in FDCAN internal loopback (one line per second)}{fig:m1}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Milestone M1 results}
+\label{tab:m1}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+\textbf{Check} & \textbf{Observation} & \textbf{Result} \\
+\midrule
+Transmit rate & +110 frames per second (100$\times$0x100 + 10$\times$0x101) & \cmark \\
+Loopback reception & \texttt{rx100} +100 per second; \texttt{rx = tx - 2} constant (two frames in flight when the log is printed) & \cmark \\
+Endurance & more than 59\,000 frames, \texttt{drop=0}, \texttt{busoff=0} & \cmark \\
+ADC & follows the potentiometer (0 to 104.8\,km/h observed during the sweep); $\pm$1--2\,LSB at rest & \cmark \\
+Scaling & e.g. ADC 865 $\rightarrow$ $865 \times 2500/4095 = 528$ $\rightarrow$ 52.8\,km/h & \cmark \\
+Fault injection (B1) & not yet exercised on hardware & open \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Milestone M2: Control ECU in Loopback}
+
+In loopback the Control ECU also plays the Sensor ECU: its monitor task sends an E2E-protected 0x100 frame every 10\,ms with a speed ramp from 0 to 250\,km/h, so the whole chain from the FDCAN interrupt to the PWM output is exercised on the DK1 alone. Figure~\ref{fig:m2} shows the log and Table~\ref{tab:m2} the results.
+
+\reportimage{m2_control_loopback_uart.png}{0.95}{Control ECU log on the STM32MP157 Cortex-M4 in FDCAN internal loopback}{fig:m2}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Milestone M2 results}
+\label{tab:m2}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+\textbf{Check} & \textbf{Observation} & \textbf{Result} \\
+\midrule
+Reception & \texttt{e2e ok} +100 per second, \texttt{rx = tx - 1} & \cmark \\
+E2E & 30\,900 frames: 0 CRC, 0 lost, 0 repeated, 0 sequence errors & \cmark \\
+Signal freshness & \texttt{age = 10\,ms} (timeout threshold 100\,ms) & \cmark \\
+Output & PWM tracks speed, e.g. 193.4\,km/h $\rightarrow$ 77.3\,\% & \cmark \\
+Faults & timeout active at start-up, cleared automatically once data arrives; no active fault afterwards & \cmark \\
+RTOS & 0 queue overflows; 11\,032 bytes of the 16\,KB heap free & \cmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bring-up of the Control ECU}
+\label{sec:bringup}
+
+The first run of the Control ECU on the DK1 did nothing observable. No debugger connection to the M4 was available in production mode (the A7 owns the M4 reset), and the UART log was not yet readable. The firmware state was therefore inspected from Linux, which can read the M4 SRAM (aliased at 0x3002\,0000) and all peripheral registers through \texttt{/dev/mem}; symbol addresses and structure offsets were taken from the ELF file with \texttt{nm} and \texttt{gdb}. Two independent defects were found.
+
+\subsection{Issue 1: missing SysTick handler}
+
+\textbf{Observation.} \texttt{xSchedulerRunning = 1} and the current task was the idle task, but the FreeRTOS tick count \texttt{xTickCount} stayed at 0 and the HAL tick \texttt{uwTick} was frozen at 19. All application tasks were blocked waiting for a tick that never came.
+
+\textbf{Root cause.} STM32CubeMX generated \texttt{USE\_CUSTOM\_SYSTICK\_HANDLER\_IMPLEMENTATION = 1}, which tells the CMSIS-RTOS2 layer not to define \texttt{SysTick\_Handler} because the interrupt file will. With TIM7 selected as HAL time base, however, the interrupt file contained no such handler. The symbol table showed \texttt{SysTick\_Handler} as a weak alias of \texttt{Default\_Handler}, an endless loop: the first RTOS tick trapped the CPU at the SysTick priority, which also blocked the TIM7 interrupt and froze \texttt{uwTick}.
+
+\textbf{Fix.} The flag is overridden to 0 inside a \texttt{USER CODE} section of \texttt{FreeRTOSConfig.h}, which STM32CubeMX preserves on regeneration, so that \texttt{cmsis\_os2.c} provides the standard handler. After the fix the symbol is a strong definition and the tick advances at 1\,kHz.
+
+\subsection{Issue 2: FDCAN kernel clock stuck in a glitch-free multiplexer}
+
+\textbf{Observation.} After the first fix the tasks ran, but \texttt{CCCR.INIT} remained 1, no frame was transmitted and the HAL state was \texttt{BUSY} with no error code, meaning that \texttt{HAL\_FDCAN\_Start()} had succeeded. Clearing \texttt{INIT} directly from Linux had no effect either, which pointed to a missing protocol clock rather than to the firmware.
+
+\textbf{Investigation.} Register reads after a fresh Linux boot showed the state left by Linux (Table~\ref{tab:clockstate}). The clock calibration unit of FDCAN1 was in bypass (\texttt{CCFG.BCC = 1}) and therefore not involved.
+
+\begin{table}[H]
+\centering
+\small
+\caption{FDCAN clock state left by Linux after boot}
+\label{tab:clockstate}
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+\textbf{Register field} & \textbf{Value} & \textbf{Meaning} \\
+\midrule
+\texttt{RCC\_FDCANCKSELR} & 3 & FDCAN kernel clock taken from PLL4\_R \\
+\texttt{RCC\_PLL4CR.DIVREN} & 0 & PLL4\_R output disabled (unused by Linux) \\
+\texttt{RCC\_OCENSETR.HSEKERON} & 0 & HSE kernel clock output not enabled \\
+\texttt{RCC\_TZCR.TZEN} & 1 & RCC in secure mode; oscillator \textit{disable} register is secure-only \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Root cause.} STM32 kernel clock multiplexers are glitch-free: a switch completes only while both the current and the new input are running~\cite{RM0436}. The firmware switched the multiplexer from PLL4\_R to HSE while PLL4\_R was disabled, so the switch never completed and the FDCAN core was left without any clock. The hypothesis was confirmed experimentally: enabling PLL4\_R for a few milliseconds from Linux immediately let \texttt{INIT} clear and frames flow; PLL4\_R was then disabled again and FDCAN kept running from HSE.
+
+\textbf{Fix.} \texttt{CanDrv\_PrepareKernelClock()}, called before the HAL initialises FDCAN, sets the HSE kernel clock enable, temporarily enables the output of the currently selected PLL if it is off, switches to HSE, waits 1\,ms, restores the PLL output exactly as Linux left it, and reads back the effective kernel frequency. The fix was verified after a fresh reboot with no manual register access: the firmware alone brought FDCAN up at 24\,MHz.
+
+\subsection{Other observations}
+
+\begin{itemize}
+  \item \textbf{FreeRTOS heap.} The default 3\,KB heap was too small for five tasks (three application tasks plus the idle and timer-service tasks) with newlib re-entrancy enabled; it was raised to 16\,KB, of which 11\,KB remain free.
+  \item \textbf{DLC encoding.} The STM32MP1 HAL encodes the data length in bits 19:16 of the header word, whereas the STM32G4 HAL uses the plain byte count. A compile-time assertion in each driver guards against silently using the wrong encoding.
+  \item \textbf{HAL tick rate.} In production mode the HAL tick driven by TIM7 runs at about 2\,kHz, because the timer clock configured by Linux differs from the value assumed by STM32CubeMX. The application uses the FreeRTOS tick, which is correct; the HAL tick is an open point.
+\end{itemize}
+
+\section{Resource Usage}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Memory footprint (Debug builds)}
+\label{tab:memory}
+\begin{tabular}{@{}lrrl@{}}
+\toprule
+\textbf{Firmware} & \textbf{Code} & \textbf{RAM (data+bss)} & \textbf{Available} \\
+\midrule
+Sensor ECU (STM32G431) & 31.6\,KB & 2.5\,KB & 128\,KB flash / 32\,KB RAM \\
+Control ECU (M4, \texttt{-O0}) & 67.5\,KB & 22.9\,KB & 128\,KB code SRAM / 128\,KB data SRAM \\
+\bottomrule
+\end{tabular}
+\end{table}

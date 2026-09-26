@@ -1,0 +1,236 @@
+\chapter{SYSTEM DESIGN}
+\label{ch:design}
+
+\section{Requirements}
+
+Table~\ref{tab:requirements} lists the requirements derived from the objectives in Chapter~\ref{ch:intro}. They are referenced in the evaluation in Chapter~\ref{ch:discussion}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{System requirements}
+\label{tab:requirements}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{ID} & \textbf{Requirement} \\
+\midrule
+R1 & Classic CAN 2.0A, 11-bit identifiers, 500\,kbit/s, sample point close to 87.5\,\% on every node. \\
+R2 & The Sensor ECU publishes the speed signal every 10\,ms and a node heartbeat every 100\,ms. \\
+R3 & Cyclic frames carry an alive counter and a CRC; the receiver rejects corrupted, repeated and out-of-sequence data. \\
+R4 & The Control ECU detects a missing speed signal within 100\,ms, an out-of-range speed and an E2E error, and then drives its output to a safe state (0\,\%). \\
+R5 & Fault injection on both ECUs by push button, without changing wiring. \\
+R6 & Diagnostic access through UDS over ISO-TP on 0x7E0/0x7E8, with negative responses. \\
+R7 & Only the MCAL layer accesses the HAL; protocol modules are hardware independent and unit tested on a PC. \\
+R8 & Bus-off is recovered automatically after a delay, without resetting the ECU. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{System Architecture and Hardware}
+
+Figure~\ref{fig:system} shows the target network. Table~\ref{tab:hardware} lists the hardware.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  \node[node] (sen) at (0,0) {\textbf{Sensor ECU}\\NUCLEO-G431RB\\potentiometer $\rightarrow$ ADC};
+  \node[node] (ctl) at (9,0) {\textbf{Control ECU}\\STM32MP157 Cortex-M4\\FreeRTOS, PWM output};
+  \node[node, fill=gray!10] (tst) at (4.5,-3.4) {\textbf{Diagnostic tester}\\Linux (Cortex-A7)\\UDS client};
+  \draw[very thick] (-1.8,-1.7) -- (10.8,-1.7) node[right]{CAN};
+  \draw[thick] (sen.south) -- (0,-1.7);
+  \draw[thick] (ctl.south) -- (9,-1.7);
+  \draw[thick,dashed] (tst.north) -- (4.5,-1.7);
+  \node[font=\footnotesize, fill=white] at (0,-1.2) {TX 0x100, 0x101};
+  \node[font=\footnotesize, fill=white] at (9,-1.2) {RX 0x100/0x101, 0x7E0 / TX 0x7E8};
+  \node[font=\footnotesize] at (6.7,-2.4) {0x7E0 / 0x7E8 (planned)};
+  \node[font=\footnotesize,align=center] at (-1.8,-2.2) {120\,$\Omega$};
+  \node[font=\footnotesize,align=center] at (10.8,-2.2) {120\,$\Omega$};
+\end{tikzpicture}
+\caption{Target network architecture. The dashed tester link is future work.}
+\label{fig:system}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Hardware}
+\label{tab:hardware}
+\begin{tabularx}{\textwidth}{@{}Xp{6.4cm}@{}}
+\toprule
+\textbf{Item} & \textbf{Use} \\
+\midrule
+NUCLEO-G431RB (STM32G431RB, Cortex-M4F, 170\,MHz)~\cite{UM2505,RM0440} & Sensor ECU; on-board ST-LINK for flashing and a virtual COM port for logs \\
+STM32MP157D-DK1 (2$\times$Cortex-A7 + Cortex-M4)~\cite{UM2637,RM0436} & Control ECU on the M4, Linux (OpenSTLinux, kernel 6.6) on the A7 cores \\
+SN65HVD230 3.3\,V CAN transceiver (2$\times$)~\cite{SN65HVD230} & Physical layer; 3.3\,V parts avoid level shifting on 3.3\,V MCU pins \\
+10\,k$\Omega$ potentiometer, push buttons, LED + 220\,$\Omega$ & Speed input, fault injection, PWM output \\
+USB-to-UART adapter & Log of the M4 firmware (UART7) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{CAN Configuration}
+
+\subsection{Bit timing}
+
+The two controllers run from different kernel clocks, so each node has its own timing. Both are derived from a crystal (HSE) because the tolerance bound of Equation~\ref{eq:tolerance} is below 0.5\,\% for both configurations. Table~\ref{tab:bittiming} gives the values.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Bit-timing configuration (500\,kbit/s)}
+\label{tab:bittiming}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \textbf{Sensor ECU (STM32G431)} & \textbf{Control ECU (STM32MP157)} \\
+\midrule
+Kernel clock & 170\,MHz (PCLK1, from 24\,MHz HSE) & 24\,MHz (HSE) \\
+Prescaler & 10 & 3 \\
+$t_q$ & 58.8\,ns & 125\,ns \\
+Seg1 / Seg2 / SJW & 29 / 4 / 4 & 13 / 2 / 2 \\
+NBT & 34\,tq & 16\,tq \\
+Bit rate & 500\,000\,bit/s & 500\,000\,bit/s \\
+Sample point & 88.2\,\% & 87.5\,\% \\
+Tolerance bound (Eq.~\ref{eq:tolerance}) & 0.46\,\% & 0.49\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On the STM32G431, 170\,MHz cannot be divided into a 16-quantum bit at 500\,kbit/s, so 34\,tq were used; the resulting 88.2\,\% sample point is within a fraction of a quantum of 87.5\,\%. On the STM32MP157 the 24\,MHz HSE gives exactly 16\,tq and 87.5\,\%. The kernel clock that Linux selects by default (PLL4\_R, 74.25\,MHz) cannot produce 500\,kbit/s exactly ($74.25\,\text{MHz}/500\,\text{kHz} = 148.5$); the Control ECU therefore switches the FDCAN kernel clock to HSE at start-up (Section~\ref{sec:bringup}) and keeps a fallback timing for 74.25\,MHz with a 0.34\,\% error.
+
+\subsection{CAN matrix}
+
+Table~\ref{tab:canmatrix} lists the identifiers. The byte layout is defined once in \texttt{common/can/can\_matrix.h}, which both firmware projects compile, so the layouts cannot drift apart. The detailed layout is in Appendix~\ref{app:frames}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{CAN matrix}
+\label{tab:canmatrix}
+\begin{tabularx}{\textwidth}{@{}llccX@{}}
+\toprule
+\textbf{ID} & \textbf{Name} & \textbf{Sender} & \textbf{Cycle} & \textbf{Content} \\
+\midrule
+0x100 & SENSOR\_SPEED & Sensor ECU & 10\,ms & speed (0.1\,km/h), raw ADC, status, alive counter, CRC-8 \\
+0x101 & SENSOR\_ALIVE & Sensor ECU & 100\,ms & node state, uptime, bus-off count, alive counter, CRC-8 \\
+0x7E0 & UDS request & tester & event & ISO-TP, physical addressing to the Control ECU \\
+0x7E8 & UDS response & Control ECU & event & ISO-TP response \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Multi-byte signals are big-endian (Motorola byte order), as is usual in automotive signal databases, and the speed is an unsigned integer in 0.1\,km/h so that no floating-point value travels on the bus.
+
+\section{Software Architecture}
+
+Figure~\ref{fig:layers} shows the layering. MCAL drivers wrap the STM32 HAL; everything above them is portable C. The shared modules in \texttt{common/} are linked into both STM32CubeIDE projects as a linked folder, so the firmware and the PC unit tests compile the very same source files.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small, node distance=0.25cm]
+  \node[layer, fill=green!8] (app) {\textbf{Application}: \texttt{sensor\_app}, \texttt{control\_app}};
+  \node[layer, fill=orange!10, below=of app] (svc) {\textbf{Services}: \texttt{uds\_server}, \texttt{dtc\_manager} \textit{(planned)}};
+  \node[layer, fill=yellow!12, below=of svc] (com) {\textbf{Communication}: \texttt{isotp}, \texttt{e2e}, \texttt{crc8}, \texttt{can\_matrix}};
+  \node[layer, fill=blue!8, below=of com] (mcal) {\textbf{MCAL}: \texttt{can\_drv}, \texttt{adc\_drv}, \texttt{gpio\_drv}, \texttt{io\_drv}};
+  \node[layer, fill=gray!15, below=of mcal] (hal) {STM32Cube HAL / registers};
+  \draw[decorate,decoration={brace,amplitude=6pt}] ([xshift=4pt]svc.north east) -- ([xshift=4pt]com.south east)
+    node[midway,right=8pt,align=left,font=\footnotesize]{hardware independent,\\unit tested on PC};
+\end{tikzpicture}
+\caption{AUTOSAR-inspired software layers}
+\label{fig:layers}
+\end{figure}
+
+\section{Sensor ECU Design}
+
+The Sensor ECU runs bare-metal. TIM6 raises a flag every 10\,ms; the main loop consumes it and runs one task cycle. The interrupt routine only sets the flag, so ADC conversions, CAN writes and logging never execute in interrupt context, and a missed deadline is counted as an overrun. Each cycle:
+\begin{enumerate}[nosep]
+  \item debounces push button B1 (30\,ms) and advances the fault-injection mode on each press;
+  \item samples the potentiometer (12-bit ADC, 92.5-cycle sampling time) and filters it with an 8-sample moving average;
+  \item scales the value to 0--250.0\,km/h and sends frame 0x100 protected by the E2E module;
+  \item every tenth cycle sends frame 0x101;
+  \item runs the bus-off recovery state machine and the status LED.
+\end{enumerate}
+
+\paragraph{Sampling time.} The potentiometer wiper has a source impedance of up to 2.5\,k$\Omega$ (two 5\,k$\Omega$ halves in parallel). With a sample capacitor of about 5\,pF, reaching 12-bit accuracy needs roughly ten time constants, about 120\,ns, which the default 2.5-cycle sampling time at 42.5\,MHz (59\,ns) does not provide. 92.5 cycles (2.2\,\textmu s) gives a large margin at negligible cost, since only one sample is taken every 10\,ms.
+
+\paragraph{Fault injection.} Button B1 cycles through three modes: \texttt{NONE}; \texttt{SILENT}, which stops frame 0x100 so that the receiver's timeout detection is exercised; and \texttt{OUT\_OF\_RANGE}, which sends 300.0\,km/h. The status byte of 0x100 flags active fault injection so that injected faults can be told apart from real ones in a bus trace.
+
+\paragraph{Bus-off recovery.} On bus-off the FDCAN hardware sets \texttt{CCCR.INIT}. The driver waits 100\,ms and then clears \texttt{INIT}, which starts the standard recovery sequence of 128$\times$11 recessive bits. The delay prevents a faulty node from flooding the bus with error frames.
+
+\section{Control ECU Design}
+
+The Control ECU runs FreeRTOS~\cite{FreeRTOS} on the Cortex-M4. Figure~\ref{fig:ctrl_flow} shows the data flow.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small, node distance=0.55cm]
+  \node[box, fill=blue!8] (isr) {FDCAN1 RX ISR\\(copy frame only)};
+  \node[box, fill=yellow!12, right=of isr] (q) {RTOS queue\\32 frames};
+  \node[box, fill=green!8, right=of q] (com) {\textbf{ComRx task}\\E2E check,\\update signal};
+  \node[box, fill=green!8, below=1.3cm of com] (mon) {\textbf{Monitor task} (10\,ms)\\timeout / range / E2E /\\sensor / local faults};
+  \node[box, fill=blue!8, left=of mon] (pwm) {PWM output\\(safe state 0\,\%)};
+  \node[box, fill=gray!10, left=of pwm] (log) {UART7 log\\(1\,s)};
+  \draw[arr] (isr) -- (q);
+  \draw[arr] (q) -- (com);
+  \draw[arr] (com) -- node[right,font=\footnotesize]{mutex-protected view} (mon);
+  \draw[arr] (mon) -- (pwm);
+  \draw[arr] (pwm) -- (log);
+\end{tikzpicture}
+\caption{Control ECU data flow}
+\label{fig:ctrl_flow}
+\end{figure}
+
+\begin{itemize}
+  \item \textbf{Interrupt level.} The FDCAN receive callback copies each frame into an RTOS queue and returns; a full queue is counted rather than blocking.
+  \item \textbf{ComRx task} (above-normal priority) runs the E2E check on 0x100, updates a shared view of the sensor signal under a mutex and counts E2E outcomes. Frames 0x7E0/0x7DF are routed to the future UDS server.
+  \item \textbf{Monitor task} (normal priority, 10\,ms period with \texttt{osDelayUntil}) evaluates five faults, applies the safe state, runs bus-off recovery and prints a status line every second.
+\end{itemize}
+
+Table~\ref{tab:faults} lists the monitored faults. When a fault that invalidates the speed signal is active, the output is forced to 0\,\% instead of using stale or implausible data. The E2E fault heals only after ten consecutive valid frames to avoid chattering.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Faults monitored by the Control ECU}
+\label{tab:faults}
+\begin{tabularx}{\textwidth}{@{}lXc@{}}
+\toprule
+\textbf{Fault} & \textbf{Condition} & \textbf{Safe state} \\
+\midrule
+SPEED\_TIMEOUT & no valid 0x100 for more than 100\,ms (500\,ms grace after start) & yes \\
+SPEED\_RANGE & received speed above 250.0\,km/h & yes \\
+SPEED\_E2E & CRC or sequence error; healed after 10 valid frames & yes \\
+SENSOR\_ADC & Sensor ECU reports an ADC read error in its status byte & no \\
+OUTPUT\_LOCAL & toggled by button USER1 (simulated actuator fault) & yes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In a later milestone each fault becomes a DTC with an ISO~14229 status byte in the DTC manager, readable and clearable over UDS.
+
+\section{Communication Modules}
+
+\subsection{E2E protection}
+
+\texttt{E2e\_Protect()} writes the 4-bit alive counter to byte~6 and the CRC-8 SAE-J1850 of bytes 0--6 to byte~7. \texttt{E2e\_Check()} verifies the CRC first, so a corrupted frame never modifies the receiver state, and then classifies the counter difference modulo 16: 0 is \textit{repeated}, 1 is \textit{OK}, 2--3 is \textit{OK with some frames lost}, and larger jumps are rejected as \textit{wrong sequence} with resynchronisation on the next frame.
+
+\subsection{ISO-TP}
+
+The ISO-TP module keeps independent sender and receiver state machines per link. It is hardware independent: the CAN send function and a millisecond clock are injected through a configuration structure, which makes the timing behaviour fully controllable in unit tests. Notable design points:
+\begin{itemize}[nosep]
+  \item all frames are padded to 8 bytes with 0xCC;
+  \item STmin is enforced with one extra tick of margin, because with a 1\,ms clock a frame sent at $x.99$\,ms and the next at $(x+1).00$\,ms would be only 0.01\,ms apart;
+  \item STmin values in the 100--900\,\textmu s range are rounded up to 1\,ms, and reserved values are treated as the 127\,ms maximum, as required by the standard;
+  \item if the CAN driver is busy (three TX FIFO slots on the STM32), a frame is retried on the next cycle instead of being dropped;
+  \item N\_Bs and N\_Cr timeouts, a limit on consecutive FC.WAIT frames and FC.OVFLW handling abort a transfer with an explicit result code.
+\end{itemize}
+
+\section{Verification Strategy}
+
+Verification proceeds bottom-up:
+\begin{enumerate}[nosep]
+  \item \textbf{Unit tests on a PC} for all hardware-independent modules, using a fake CAN driver and a fake clock. Compiled with \texttt{-Wall -Wextra -Wpedantic -Wshadow -Wconversion}.
+  \item \textbf{FDCAN internal loopback} on each ECU, which exercises bit-timing configuration, filters, interrupts and the full software path without a transceiver.
+  \item \textbf{Two-node bus} with transceivers, checked with a logic analyser (next milestone).
+  \item \textbf{System test} with the UDS tester (final milestone).
+\end{enumerate}
+Each hardware test records the UART log as evidence, together with a pass criterion defined before the run.

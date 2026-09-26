@@ -1,0 +1,44 @@
+\chapter{Frame Layouts}
+\label{app:frames}
+
+All multi-byte values are big-endian. Bytes 6 and 7 of the cyclic frames are written by \texttt{E2e\_Protect()} and checked by \texttt{E2e\_Check()}.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Frame 0x100 SENSOR\_SPEED (DLC 8, 10\,ms)}
+\label{tab:frame100}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+\textbf{Byte} & \textbf{Signal} & \textbf{Encoding} \\
+\midrule
+0--1 & VehicleSpeed & unsigned, 0.1\,km/h per bit, valid 0--2500 \\
+2--3 & AdcRaw & 12-bit raw ADC value (diagnostic) \\
+4 & Status & bit 0: fault injection active; bit 1: ADC read error \\
+5 & -- & reserved, 0 \\
+6 & AliveCounter & 0--15 in the low nibble, +1 per frame \\
+7 & CRC & CRC-8 SAE-J1850 (poly 0x1D, init 0xFF, xor-out 0xFF) over bytes 0--6 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Frame 0x101 SENSOR\_ALIVE (DLC 8, 100\,ms)}
+\label{tab:frame101}
+\begin{tabularx}{\textwidth}{@{}clX@{}}
+\toprule
+\textbf{Byte} & \textbf{Signal} & \textbf{Encoding} \\
+\midrule
+0 & NodeState & 0 = normal, 1 = fault injection \\
+1--4 & Uptime & seconds since reset \\
+5 & BusOffCount & saturates at 255 \\
+6 & AliveCounter & as above \\
+7 & CRC & as above \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{Example}
+A speed of 123.4\,km/h with ADC value 2021, no status flags and alive counter 5 gives the bytes \texttt{04 D2 07 E5 00 00 05 CRC}, where \texttt{0x04D2} = 1234 and \texttt{0x07E5} = 2021.

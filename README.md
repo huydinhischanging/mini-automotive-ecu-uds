@@ -5,6 +5,8 @@ store diagnostic trouble codes (DTCs) and answer a diagnostic tester using **UDS
 over **ISO-TP (ISO 15765-2)**.
 
 > 🚧 Work in progress. See [Roadmap](#roadmap) for current status.
+>
+> 📄 Technical report (interim, milestones M1–M2): [docs/report/main.pdf](docs/report/main.pdf)
 
 ## System overview
 

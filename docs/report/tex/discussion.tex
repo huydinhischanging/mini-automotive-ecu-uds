@@ -1,0 +1,51 @@
+\chapter{DISCUSSION AND EVALUATION}
+\label{ch:discussion}
+
+\section{Evaluation against the Requirements}
+
+Table~\ref{tab:reqeval} maps the results of Chapter~\ref{ch:results} to the requirements of Table~\ref{tab:requirements}. A requirement is marked as met only if it was demonstrated on hardware or by an automated test.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Requirement coverage}
+\label{tab:reqeval}
+\begin{tabularx}{\textwidth}{@{}lXl@{}}
+\toprule
+\textbf{ID} & \textbf{Evidence} & \textbf{Status} \\
+\midrule
+R1 & Bit timing configured and confirmed in registers on both ECUs; exchange between the two nodes not yet tested & partly met \\
+R2 & M1: 100 + 10 frames per second & met \\
+R3 & E2E unit tests; M2: 30\,900 frames checked & met \\
+R4 & Timeout set at start-up and cleared by data (M2); range and E2E detection implemented, not yet injected on hardware & partly met \\
+R5 & Implemented on both ECUs; not yet exercised on hardware & open \\
+R6 & ISO-TP complete and tested; UDS server not implemented & open \\
+R7 & Only MCAL files include the HAL; 34 PC unit tests on the shared modules & met \\
+R8 & Implemented on both ECUs; requires a physical bus to provoke bus-off & open \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{What Loopback Tests Do and Do Not Prove}
+
+Internal loopback validates a large part of the design: the controller configuration, the acceptance filters, the interrupt path, the frame packing, the E2E protection and the application logic. It does not validate the physical layer. In internal loopback the controller acknowledges its own frames, so an error in the transceiver wiring, the termination, or a mismatch in bit timing between the two nodes would stay invisible. The two ECUs deliberately use different kernel clocks and different numbers of time quanta; whether they interoperate is exactly what milestone M3 must show, preferably with a logic analyser measuring the bit time and the sample point on the bus.
+
+\section{Lessons Learned}
+
+\paragraph{Generated code is part of the system under test.} The SysTick defect came from STM32CubeMX output, not from application code. It was only found because the investigation did not stop at ``the tasks do not run'' but checked the symbol table: a weak symbol resolved to \texttt{Default\_Handler} is a concrete, checkable fact. Putting the fix in a user section of the generated file keeps it across regeneration.
+
+\paragraph{On a heterogeneous SoC the M4 inherits the clock tree of Linux.} Code that works on a standalone MCU can fail on the STM32MP1 because peripherals assigned to the M4 still depend on clock settings chosen by Linux. The FDCAN defect was a consequence of a general hardware rule (glitch-free multiplexers need both inputs running) meeting a specific software state (an unused PLL output switched off). The clean long-term solution is to let Linux configure the FDCAN kernel clock through the device tree; the firmware-side switch with read-back is a pragmatic and verified workaround.
+
+\paragraph{Debugging without a debugger.} Reading M4 memory and peripheral registers from Linux through \texttt{/dev/mem}, guided by symbol addresses from the ELF file, proved to be an effective technique on this platform, and it also allowed hypotheses to be tested by writing registers (for example enabling PLL4\_R to confirm the multiplexer theory) before changing any firmware.
+
+\paragraph{Evidence before conclusions.} Several intermediate hypotheses during bring-up were wrong: USB cables and adapters were suspected while simply re-seating the connectors resolved the connection problems, the clock calibration unit was suspected but found in bypass, and the role of the HSE kernel-clock gate could not be isolated because its disable register is secure-only. Recording which observations support each conclusion (Section~\ref{sec:bringup}) keeps the report honest about what was actually proven.
+
+\section{Limitations}
+
+\begin{itemize}
+  \item No two-node bus test yet; all hardware results are from internal loopback.
+  \item UDS and DTC management are designed but not implemented; the Control ECU only counts diagnostic requests.
+  \item The HAL tick of the M4 runs at about twice the intended rate in production mode.
+  \item The FDCAN clock is reconfigured by the M4 rather than by the Linux device tree.
+  \item Static analysis (cppcheck with MISRA rules) has not been run yet, and the firmware has not been measured for worst-case execution time or interrupt latency.
+\end{itemize}

@@ -1,0 +1,72 @@
+\chapter{TECHNICAL BACKGROUND}
+\label{ch:background}
+
+This chapter summarises the standards and platform features that the design relies on. It is not a complete tutorial; the cited specifications are normative.
+
+\section{Controller Area Network}
+
+CAN is a multi-master serial bus with non-destructive bitwise arbitration: when several nodes start transmitting, the frame with the lowest identifier wins and the others retry automatically~\cite{BoschCAN20,ISO11898-1}. Every receiver acknowledges a correct frame in the ACK slot, so a transmitter that is alone on the bus sees an acknowledgement error and keeps retrying. Each node maintains transmit and receive error counters; above 255 transmit errors it enters the \textit{bus-off} state and stops participating until it has observed 128 occurrences of 11 recessive bits.
+
+\subsection{Bit timing}
+
+A bit is divided into time quanta (tq) of length $t_q = \text{prescaler} / f_\text{kernel}$. The nominal bit time is
+\begin{equation}
+  \text{NBT} = 1 + \text{Seg1} + \text{Seg2} \quad [\text{tq}], \qquad
+  \text{bitrate} = \frac{f_\text{kernel}}{\text{prescaler}\cdot\text{NBT}},
+\end{equation}
+where the leading quantum is the synchronisation segment, Seg1 combines propagation and phase segment 1, and Seg2 is phase segment 2. The bus is sampled at the sample point
+\begin{equation}
+  \text{SP} = \frac{1 + \text{Seg1}}{\text{NBT}},
+\end{equation}
+for which automotive networks typically use about 87.5\,\%. The synchronisation jump width (SJW) limits how far a node may re-align its bit phase on each recessive-to-dominant edge. Because every node samples with its own oscillator, the tolerated clock deviation is bounded by~\cite{ISO11898-1}
+\begin{equation}
+  \Delta f \le \min\left( \frac{\text{SJW}}{20\,\text{NBT}},\;
+  \frac{\min(\text{Seg1},\text{Seg2})}{2\,(13\,\text{NBT} - \text{Seg2})} \right).
+  \label{eq:tolerance}
+\end{equation}
+For the configurations in this project the bound is below 0.5\,\%, which rules out on-chip RC oscillators (typically $\pm$1\,\%) and motivates crystal clocks on both ECUs.
+
+\section{ISO-TP (ISO 15765-2)}
+
+ISO-TP transports messages of up to 4095 bytes over classic CAN frames~\cite{ISO15765-2}. The first byte (protocol control information) identifies four frame types:
+\begin{itemize}[nosep]
+  \item \textbf{Single Frame (SF)} \texttt{0L}: up to 7 data bytes.
+  \item \textbf{First Frame (FF)} \texttt{1L LL}: 12-bit total length and 6 data bytes.
+  \item \textbf{Consecutive Frame (CF)} \texttt{2N}: 7 data bytes with a 4-bit sequence number that wraps from 15 to 0.
+  \item \textbf{Flow Control (FC)} \texttt{3S BS STmin}: sent by the receiver with a flow status (continue, wait, overflow), a block size BS (number of CFs before the next FC, 0 = unlimited) and the minimum separation time STmin between CFs.
+\end{itemize}
+Timers supervise the exchange: the sender waits at most N\_Bs for a flow control, the receiver at most N\_Cr for the next consecutive frame. Figure~\ref{fig:isotp_seq} shows a segmented transfer.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  \node (s) at (0,0) {\textbf{Sender}};
+  \node (r) at (8,0) {\textbf{Receiver}};
+  \draw[thick,gray] (0,-0.3) -- (0,-5.6);
+  \draw[thick,gray] (8,-0.3) -- (8,-5.6);
+  \draw[arr] (0,-0.8) -- node[above]{FF \texttt{10 14} + 6 bytes (total 20 B)} (8,-1.1);
+  \draw[arr] (8,-1.9) -- node[above]{FC \texttt{30 BS STmin} (continue to send)} (0,-2.2);
+  \draw[arr] (0,-3.0) -- node[above]{CF \texttt{21} + 7 bytes} (8,-3.3);
+  \draw[arr] (0,-4.1) -- node[above]{CF \texttt{22} + 7 bytes} (8,-4.4);
+  \node[align=left,anchor=west] at (8.3,-4.5) {complete:\\20 bytes};
+  \draw[<->,gray] (-0.4,-3.0) -- node[left]{$\ge$ STmin} (-0.4,-4.1);
+\end{tikzpicture}
+\caption{Segmented ISO-TP transfer of a 20-byte message}
+\label{fig:isotp_seq}
+\end{figure}
+
+\section{Unified Diagnostic Services (ISO 14229)}
+
+UDS defines a request/response protocol between a tester and an ECU~\cite{ISO14229-1}. A request starts with a service identifier (SID); a positive response echoes SID\,+\,0x40, and a negative response is \texttt{7F SID NRC} with a negative response code such as 0x11 (service not supported) or 0x31 (request out of range). The services targeted by this project are Diagnostic Session Control (0x10), ECU Reset (0x11), Clear Diagnostic Information (0x14), Read DTC Information (0x19), Read Data By Identifier (0x22) and Tester Present (0x3E). On vehicles the physical request and response identifiers of the engine ECU are commonly 0x7E0 and 0x7E8; the project reuses this pair.
+
+\section{End-to-End Protection}
+
+Bus-level CAN checks detect transmission errors on the wire but not faults inside an ECU, such as a stuck task that keeps resending an old buffer or corrupted RAM. AUTOSAR E2E profiles therefore add, inside the payload, an alive (sequence) counter and a CRC computed by the sender and verified by the receiver~\cite{AUTOSAR_E2E}. Profile~1 uses a 4-bit counter and CRC-8 SAE-J1850 (polynomial 0x1D)~\cite{SAEJ1850}. The receiver classifies each frame as correct, repeated, with some frames lost, or with a wrong sequence, and discards data that fails the check.
+
+\section{Layered ECU Software}
+
+The AUTOSAR classic platform separates application software from basic software, and at the bottom of the basic software the microcontroller abstraction layer (MCAL) encapsulates all register access~\cite{AUTOSAR_LayeredArch}. This project applies the same idea at a small scale: only MCAL drivers call the STM32 HAL; communication and service modules are portable C.
+
+\section{STM32MP157 Heterogeneous Architecture}
+
+The STM32MP157 combines two Cortex-A7 cores running Linux with a Cortex-M4 microcontroller core~\cite{RM0436}. In the \textit{production} boot mode used here, Linux starts first, owns the clock tree and loads the M4 firmware from the file system through the \texttt{remoteproc} framework. The M4 has no flash of its own; its code runs from internal SRAM and must be reloaded after each power cycle. Peripherals are assigned to one of the cores; a peripheral assigned to the M4 is disabled in the Linux device tree, but its kernel clock is still generated by the reset and clock controller (RCC), whose settings are left by Linux. This division of responsibilities is central to the bring-up issues analysed in Section~\ref{sec:bringup}.

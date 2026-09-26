@@ -1,0 +1,14 @@
+\chapter*{ABSTRACT}
+\addcontentsline{toc}{chapter}{ABSTRACT}
+
+This report describes the design and the first two milestones of a scaled-down in-vehicle network built from low-cost development boards. A \textit{Sensor ECU} on an STM32G431 (NUCLEO-G431RB) samples a potentiometer that emulates vehicle speed and publishes it on a 500\,kbit/s classic CAN bus every 10\,ms. A \textit{Control ECU} runs FreeRTOS on the Cortex-M4 core of an STM32MP157D (STM32MP157D-DK1), next to Linux on the Cortex-A7 cores, and consumes the signal, monitors it for faults and drives a PWM output. A diagnostic tester using UDS (ISO~14229) over ISO-TP (ISO~15765-2) completes the target architecture.
+
+The software follows an AUTOSAR-inspired layering in which only the MCAL layer touches the vendor HAL. Protocol modules (ISO-TP, end-to-end protection with an alive counter and CRC-8 SAE-J1850) are written in portable C and are tested on a PC with a small fault-injection-capable test harness: 34 unit tests with 173 checks pass, including a 4095-byte ISO-TP transfer between two protocol instances.
+
+Both ECUs were verified on hardware in FDCAN internal loopback. The Sensor ECU sent more than 59\,000 frames at the designed 110\,frames/s with no dropped frame and no bus-off; the ADC reading was stable to $\pm$1--2\,LSB. The Control ECU processed 30\,900 frames with zero CRC, sequence or queue-overflow errors while its output tracked the received speed. Bringing up the Control ECU uncovered two platform issues that were diagnosed by reading M4 memory and peripheral registers from Linux, without a hardware debugger: a SysTick handler missing from STM32CubeMX-generated code, and an FDCAN kernel clock stuck in a glitch-free multiplexer whose previous input had been disabled by Linux.
+
+The remaining milestones are the physical two-node bus, the UDS server with DTC management, and a Python tester on Linux.
+
+\bigskip
+\noindent\textbf{Keywords:} Controller Area Network, ISO-TP, UDS, AUTOSAR E2E, STM32MP157, FreeRTOS, embedded C, unit testing.
+\newpage

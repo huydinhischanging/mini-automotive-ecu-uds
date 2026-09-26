@@ -1,0 +1,19 @@
+\chapter{CONCLUSION AND FUTURE WORK}
+\label{ch:conclusion}
+
+\section{Conclusion}
+
+This report presented the design of a miniature automotive ECU network and the completion of its first two milestones. A Sensor ECU on an STM32G431 publishes an end-to-end protected speed signal at 500\,kbit/s with the designed timing, and a Control ECU on the Cortex-M4 of an STM32MP157 receives it under FreeRTOS, checks it, supervises it for faults and drives a safe-state output. The protocol layer is portable and backed by 34 passing unit tests, including a full-length ISO-TP transfer. Both ECUs were verified on hardware in internal loopback with zero communication errors over tens of thousands of frames.
+
+The most instructive part of the work was the bring-up of the Control ECU on a heterogeneous SoC, where two defects outside the application code, a missing interrupt handler in generated code and a clock multiplexer blocked by the clock state left by Linux, were located by reading the running firmware's memory and registers from Linux and were fixed in a way that survives code regeneration and a cold boot.
+
+\section{Future Work}
+
+\begin{enumerate}
+  \item \textbf{M3 -- physical bus.} Connect both ECUs through SN65HVD230 transceivers with 120\,$\Omega$ termination at both ends, verify the 60\,$\Omega$ bus resistance, and measure bit time and sample point with a logic analyser. Exercise fault injection, timeout and bus-off recovery on the real bus.
+  \item \textbf{UDS server.} Implement services 0x10, 0x11, 0x14, 0x19, 0x22 and 0x3E with negative responses and session timing on top of the existing ISO-TP module, with unit tests on the PC.
+  \item \textbf{DTC manager.} Store faults as DTCs with ISO~14229 status bits, confirmation and healing counters, readable and clearable over UDS.
+  \item \textbf{Tester.} A Python UDS client on Linux using SocketCAN, either through a USB-CAN adapter or the second FDCAN controller of the STM32MP157.
+  \item \textbf{Quality.} Static analysis with cppcheck and MISRA rules, a fix for the HAL tick rate, and moving the FDCAN clock configuration into the Linux device tree.
+  \item \textbf{Documentation.} A demonstration video of the complete fault-to-DTC-to-tester flow.
+\end{enumerate}

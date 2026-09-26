@@ -32,3 +32,19 @@ __pycache__/
 Thumbs.db
 .DS_Store
 *.bak
+
+# LaTeX build artefacts (report PDF itself is committed)
+docs/report/*.aux
+docs/report/**/*.aux
+docs/report/*.log
+docs/report/*.bcf
+docs/report/*.run.xml
+docs/report/*.toc
+docs/report/*.lof
+docs/report/*.lot
+docs/report/*.out
+docs/report/*.fls
+docs/report/*.fdb_latexmk
+docs/report/*.xdv
+docs/report/*.blg
+docs/report/*.bbl

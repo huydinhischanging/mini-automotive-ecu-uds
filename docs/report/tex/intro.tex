@@ -1,0 +1,51 @@
+\chapter{INTRODUCTION}
+\label{ch:intro}
+
+\section{Background}
+
+A modern vehicle contains dozens of electronic control units (ECUs) that exchange data over in-vehicle networks, most commonly the Controller Area Network (CAN)~\cite{ISO11898-1}. Each ECU samples sensors, runs control software and, just as importantly, supervises itself: it detects missing or implausible signals, stores diagnostic trouble codes (DTCs) and answers a workshop tester through a standardised diagnostic protocol, Unified Diagnostic Services (UDS)~\cite{ISO14229-1}. Because a CAN frame carries at most eight data bytes, diagnostic messages travel over the ISO-TP transport layer, which segments and reassembles longer messages~\cite{ISO15765-2}.
+
+These building blocks, deterministic communication, end-to-end protection of safety-relevant signals, fault management and diagnostics, are the daily material of automotive embedded software. They are rarely visible in hobby projects, which usually stop at reading a sensor and blinking a LED.
+
+\section{Problem Statement and Motivation}
+
+Professional automotive tool chains (AUTOSAR stacks, commercial CAN analysers, production ECUs) are expensive and hide most of the mechanisms behind configuration tools. A learner therefore has few opportunities to implement and debug the protocols end to end on real hardware. The goal of this project is to build a miniature but technically faithful ECU network from affordable development boards, implementing the protocols from the standards rather than from vendor black boxes, and to document the engineering decisions in a way that can be reviewed.
+
+\section{Objectives}
+
+\begin{enumerate}[label=\textbf{O\arabic*.}]
+  \item Build a two-ECU classic CAN network at 500\,kbit/s with a correct, justified bit-timing configuration on two different STM32 families.
+  \item Protect the cyclic sensor signal end to end (alive counter and CRC) and detect timeout, out-of-range and corrupted data at the receiver, with a defined safe state.
+  \item Implement ISO-TP and a UDS server (sessions, tester present, read data by identifier, read and clear DTCs, ECU reset, negative responses) on the Control ECU.
+  \item Structure the firmware in AUTOSAR-like layers so that protocol code is hardware independent and unit tested on a PC.
+  \item Run the Control ECU on the Cortex-M4 of a heterogeneous STM32MP157, alongside Linux, as in modern domain controllers.
+\end{enumerate}
+
+\section{Scope of this Report}
+
+This is an interim report. Table~\ref{tab:status} summarises what is complete and verified at the time of writing. All results in Chapter~\ref{ch:results} refer to the completed items only; the remaining items are described as design and future work.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Project status at the time of writing}
+\label{tab:status}
+\begin{tabularx}{\textwidth}{@{}p{7.2cm}Xc@{}}
+\toprule
+\textbf{Work item} & \textbf{Evidence} & \textbf{Status} \\
+\midrule
+Sensor ECU firmware (ADC, cyclic CAN, E2E, fault injection) & M1 hardware test & \cmark \\
+ISO-TP transport layer & 26 unit tests & \cmark \\
+E2E protection library (shared by both ECUs) & 8 unit tests & \cmark \\
+Control ECU firmware on the Cortex-M4 (FreeRTOS, E2E check, fault monitor, safe-state output) & M2 hardware test & \cmark \\
+Two-node physical CAN bus with transceivers & -- & planned (M3) \\
+UDS server and DTC manager & -- & planned \\
+Python tester on Linux (SocketCAN) & -- & planned \\
+Static analysis (cppcheck/MISRA) and demo video & -- & planned \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Report Structure}
+
+Chapter~\ref{ch:background} reviews the relevant protocols and the STM32MP1 heterogeneous architecture. Chapter~\ref{ch:design} presents the hardware, the CAN configuration and the software design of both ECUs. Chapter~\ref{ch:results} reports the implementation, the unit tests and the two hardware milestones, including the diagnosis of two bring-up issues. Chapter~\ref{ch:discussion} evaluates the results against the objectives and discusses limitations, and Chapter~\ref{ch:conclusion} concludes with the remaining work. The appendices contain the frame layouts and the build and diagnosis procedures.
