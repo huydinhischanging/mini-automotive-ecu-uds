@@ -54,9 +54,23 @@
 
 &pinctrl {
 
+	m4_fdcan1_pins_mx: m4_fdcan1_mx-0 {
+		pins {
+			pinmux = <STM32_PINMUX('A', 11, RSVD)>, /* FDCAN1_RX */
+					 <STM32_PINMUX('A', 12, RSVD)>; /* FDCAN1_TX */
+		};
+	};
+
 	m4_tim1_pwm_pins_mx: m4_tim1_pwm_mx-0 {
 		pins {
 			pinmux = <STM32_PINMUX('E', 11, RSVD)>; /* TIM1_CH2 */
+		};
+	};
+
+	m4_uart7_pins_mx: m4_uart7_mx-0 {
+		pins {
+			pinmux = <STM32_PINMUX('E', 7, RSVD)>, /* UART7_RX */
+					 <STM32_PINMUX('E', 8, RSVD)>; /* UART7_TX */
 		};
 	};
 
@@ -71,6 +85,9 @@
 };
 
 &m4_rproc{
+	/*Restriction: "memory-region" property is not managed - please to use User-Section if needed*/
+	mboxes = <&ipcc 0>, <&ipcc 1>, <&ipcc 2>;
+	mbox-names = "vq0", "vq1", "shutdown";
 	status = "okay";
 
 	/* USER CODE BEGIN m4_rproc */
@@ -108,6 +125,13 @@
 	/* USER CODE END dmamux1 */
 };
 
+&ipcc {
+	status = "okay";
+
+	/* USER CODE BEGIN ipcc */
+	/* USER CODE END ipcc */
+};
+
 &m4_dma2 {
 	status = "okay";
 
@@ -116,6 +140,8 @@
 };
 
 &m4_m_can1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&m4_fdcan1_pins_mx>;
 	status = "okay";
 
 	/* USER CODE BEGIN m4_m_can1 */
@@ -132,6 +158,8 @@
 };
 
 &m4_uart7 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&m4_uart7_pins_mx>;
 	status = "okay";
 
 	/* USER CODE BEGIN m4_uart7 */

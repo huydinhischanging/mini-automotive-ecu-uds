@@ -56,6 +56,7 @@
 
 /* External variables --------------------------------------------------------*/
 extern FDCAN_HandleTypeDef hfdcan1;
+extern IPCC_HandleTypeDef hipcc;
 extern TIM_HandleTypeDef htim7;
 
 /* USER CODE BEGIN EV */
@@ -193,6 +194,34 @@ void TIM7_IRQHandler(void)
   /* USER CODE BEGIN TIM7_IRQn 1 */
 
   /* USER CODE END TIM7_IRQn 1 */
+}
+
+/**
+  * @brief This function handles IPCC RX1 occupied interrupt.
+  */
+void IPCC_RX1_IRQHandler(void)
+{
+  /* USER CODE BEGIN IPCC_RX1_IRQn 0 */
+
+  /* USER CODE END IPCC_RX1_IRQn 0 */
+  HAL_IPCC_RX_IRQHandler(&hipcc);
+  /* USER CODE BEGIN IPCC_RX1_IRQn 1 */
+
+  /* USER CODE END IPCC_RX1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles IPCC TX1 free interrupt.
+  */
+void IPCC_TX1_IRQHandler(void)
+{
+  /* USER CODE BEGIN IPCC_TX1_IRQn 0 */
+
+  /* USER CODE END IPCC_TX1_IRQn 0 */
+  HAL_IPCC_TX_IRQHandler(&hipcc);
+  /* USER CODE BEGIN IPCC_TX1_IRQn 1 */
+
+  /* USER CODE END IPCC_TX1_IRQn 1 */
 }
 
 /**

@@ -185,6 +185,60 @@ void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* hfdcan)
 }
 
 /**
+  * @brief IPCC MSP Initialization
+  * This function configures the hardware resources used in this example
+  * @param hipcc: IPCC handle pointer
+  * @retval None
+  */
+void HAL_IPCC_MspInit(IPCC_HandleTypeDef* hipcc)
+{
+  if(hipcc->Instance==IPCC)
+  {
+    /* USER CODE BEGIN IPCC_MspInit 0 */
+
+    /* USER CODE END IPCC_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_IPCC_CLK_ENABLE();
+    /* IPCC interrupt Init */
+    HAL_NVIC_SetPriority(IPCC_RX1_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(IPCC_RX1_IRQn);
+    HAL_NVIC_SetPriority(IPCC_TX1_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(IPCC_TX1_IRQn);
+    /* USER CODE BEGIN IPCC_MspInit 1 */
+
+    /* USER CODE END IPCC_MspInit 1 */
+
+  }
+
+}
+
+/**
+  * @brief IPCC MSP De-Initialization
+  * This function freeze the hardware resources used in this example
+  * @param hipcc: IPCC handle pointer
+  * @retval None
+  */
+void HAL_IPCC_MspDeInit(IPCC_HandleTypeDef* hipcc)
+{
+  if(hipcc->Instance==IPCC)
+  {
+    /* USER CODE BEGIN IPCC_MspDeInit 0 */
+
+    /* USER CODE END IPCC_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_IPCC_CLK_DISABLE();
+
+    /* IPCC interrupt DeInit */
+    HAL_NVIC_DisableIRQ(IPCC_RX1_IRQn);
+    HAL_NVIC_DisableIRQ(IPCC_TX1_IRQn);
+    /* USER CODE BEGIN IPCC_MspDeInit 1 */
+
+    /* USER CODE END IPCC_MspDeInit 1 */
+  }
+
+}
+
+/**
   * @brief TIM_PWM MSP Initialization
   * This function configures the hardware resources used in this example
   * @param htim_pwm: TIM_PWM handle pointer
