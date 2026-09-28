@@ -23,16 +23,16 @@ over **ISO-TP (ISO 15765-2)**.
                               ║  0x7E0               ║
                      ┌────────╨──────────────────────╨───┐
                      │  Diagnostic Tester                │
-                     │  Linux (Cortex-A7) + SocketCAN    │
-                     │  Python UDS client, can-utils     │
+                     │  today: UDS tester app on the     │
+                     │  Sensor ECU (keys on its VCP)     │
                      └───────────────────────────────────┘
 ```
 
 | Node | Hardware | Role |
 |---|---|---|
-| Sensor ECU | NUCLEO-G431RB + SN65HVD230 | Samples a potentiometer (simulated vehicle speed), sends it every 10 ms |
+| Sensor ECU | NUCLEO-G431RB + SN65HVD230 | Samples a potentiometer (simulated vehicle speed), sends it every 10 ms; also hosts the UDS tester (M5) |
 | Control ECU | STM32MP157D-DK1, Cortex-M4 | Receives data, drives outputs, monitors faults, stores DTCs, UDS server |
-| Tester | STM32MP157D-DK1, Cortex-A7 (Linux) / PC + USB-CAN | Sends UDS requests, reads/clears DTCs |
+| Tester (next) | STM32MP157D-DK1, Cortex-A7 (Linux) | C++ UDS client reaching the Control ECU over RPMsg (in progress) |
 
 ## CAN matrix
 
@@ -44,7 +44,7 @@ over **ISO-TP (ISO 15765-2)**.
 | `0x7E0` | Tester → Control ECU | on request | UDS request |
 | `0x7E8` | Control ECU → Tester | on request | UDS response |
 
-Signal-level layout: [`sensor_ecu/Core/App/can_matrix.h`](sensor_ecu/Core/App/can_matrix.h).
+Signal-level layout: [`common/can/can_matrix.h`](common/can/can_matrix.h), compiled by both ECUs.
 Cyclic frames carry an alive counter and a CRC-8 SAE-J1850 (same as AUTOSAR E2E Profile 1)
 so the receiver can detect lost, repeated or corrupted frames.
 
@@ -56,10 +56,11 @@ prescaler 10, 34 tq/bit (Seg1 29, Seg2 4, SJW 4) → sample point ≈ 88 %.
 Layered, AUTOSAR-inspired. Only the MCAL layer touches the HAL/registers.
 
 ```
-Application    sensor_app / control_app
+Application    sensor_app, tester_app / control_app, diag_app
 Services       uds_server, dtc_manager           (hardware independent)
 Communication  isotp, e2e, crc8, can_matrix      (hardware independent)
-MCAL           can_drv, adc_drv, gpio_drv, pwm_drv
+MCAL           Sensor: can_drv, adc_drv, gpio_drv, uart_drv, time_drv
+               Control: can_drv, io_drv, sys_drv
 ```
 
 Hardware-independent modules (ISO-TP, UDS, DTC manager) are plain C so they can be unit
@@ -94,16 +95,20 @@ layout; the mapping is project specific.
 
 ```
 sensor_ecu/          STM32CubeIDE project, NUCLEO-G431RB
-  Core/Mcal/         can_drv, adc_drv, gpio_drv
-  Core/App/          sensor_app, can_matrix.h, crc8
+  Core/Mcal/         can_drv, adc_drv, gpio_drv, uart_drv, time_drv
+  Core/App/          sensor_app, tester_app (UDS tester)
 control_ecu/CM4/     STM32MP157 Cortex-M4 firmware (FreeRTOS), loaded by Linux remoteproc
+  Core/Mcal/         can_drv, io_drv (PWM output, USER1 button), sys_drv (restart)
+  Core/App/          control_app, diag_app (ISO-TP link, UDS, DTC table)
+  OPENAMP/           CubeMX-generated RPMsg glue (IPCC mailbox, resource table)
 common/can/          CAN matrix shared by all nodes
 common/e2e/          alive counter + CRC-8 protection (sender and receiver)
 common/isotp/        ISO 15765-2 transport layer (SF/FF/CF/FC, BS, STmin, N_Bs/N_Cr timeouts)
 common/uds/          UDS server (ISO 14229-1)
 common/dtc/          DTC manager with ISO 14229 status bits
 tests/               host unit tests (make)
-tester/              (planned) Python UDS client (SocketCAN)
+tools/               check_all.sh, static_analysis.sh, MISRA suppressions
+docs/                report (LaTeX + PDF), logs, MISRA deviations, images
 ```
 
 ## Wiring (verified)
@@ -151,7 +156,7 @@ tools/static_analysis.sh      # cppcheck 2.x with the MISRA addon, exit 1 on fin
 ```
 
 All project code (`common/`, App and MCAL layers of both ECUs) passes with **no findings**.
-Nine rule violations were fixed in the code; the five remaining deviations are documented in
+Nine rule violations were fixed in the code; the six remaining deviations (D1–D6) are documented in
 [docs/misra_deviations.md](docs/misra_deviations.md).
 
 ## Milestones
@@ -170,7 +175,7 @@ configuration, acceptance filter, RX interrupt and frame packing without a trans
 | RX in loopback | every `0x100` received back (`rx100` +100/s) |
 | Long run | 59 000+ frames, 0 dropped, 0 bus-off |
 | ADC | full sweep follows the potentiometer, ±1–2 LSB noise at rest |
-| Fault injection (B1) | pending hardware check |
+| Fault injection (B1) | verified on the real bus in M4 |
 
 ### M2 — Control ECU bring-up on the STM32MP157 Cortex-M4 (FDCAN internal loopback) ✅
 
@@ -281,7 +286,7 @@ Known open points:
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)
 - [x] M5: external UDS tester on the Sensor ECU, 22/22 steps over the bus incl. hard reset
-- [ ] Python tester on Linux (SocketCAN)
+- [ ] C++ UDS tester on Linux (Cortex-A7) over RPMsg: IPCC + OpenAMP enabled on the M4, bridge and client in progress
 - [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
 - [x] cppcheck + MISRA C:2012 addon: no findings, deviations documented
 - [x] Demo video: https://www.youtube.com/watch?v=Ocq1K0BO8kM
