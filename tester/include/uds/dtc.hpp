@@ -22,6 +22,8 @@ inline constexpr std::uint8_t kTestFailedSinceClear        = 0x20;
 inline constexpr std::uint8_t kTestNotCompletedThisCycle   = 0x40;
 inline constexpr std::uint8_t kWarningIndicator            = 0x80;
 inline constexpr std::uint8_t kAll                         = 0xFF;
+/** DTCs that have actually failed; leaves out monitors that have not run yet (status 0x50). */
+inline constexpr std::uint8_t kFailedPendingConfirmed      = kTestFailed | kPending | kConfirmed;
 }  // namespace dtc_status
 
 struct Dtc

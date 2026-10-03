@@ -29,3 +29,11 @@ jobs:
 
       - name: C++ tester against the simulated Control ECU
         run: tester/build/uds_tester --sim
+
+      # Job logs need repository rights; annotations are public, so failures stay readable.
+      - name: Report failed C++ tests as annotations
+        if: failure()
+        run: |
+          tester/build/tester_tests --gtest_brief=1 2>&1 \
+            | grep -E "Failure|Expected|Which is|Value of|Actual|\[  FAILED  \]|ERROR|runtime error" \
+            | head -40 | sed 's/^/::error::/' || true

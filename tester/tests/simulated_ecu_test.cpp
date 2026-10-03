@@ -44,7 +44,7 @@ TEST_F(SimulatedEcuTest, VersionAndSpeed)
 TEST_F(SimulatedEcuTest, FaultLifecycleSeenByTester)
 {
     ecu.reportMonitor(Monitor::SpeedTimeout, true);   // confirm threshold 1
-    auto dtcs = client.readDtcs(dtc_status::kAll).value();
+    auto dtcs = client.readDtcs(dtc_status::kFailedPendingConfirmed).value();
     ASSERT_EQ(dtcs.size(), 1U);
     EXPECT_EQ(formatDtc(dtcs[0].code), "U0100-87");
     EXPECT_TRUE(dtcs[0].testFailed());
@@ -52,7 +52,7 @@ TEST_F(SimulatedEcuTest, FaultLifecycleSeenByTester)
     EXPECT_EQ(client.readDid(control_ecu::kDidActiveFaults).value(), (Bytes{0x01}));
 
     ecu.reportMonitor(Monitor::SpeedTimeout, false);  // fault gone, DTC stays confirmed
-    dtcs = client.readDtcs(dtc_status::kAll).value();
+    dtcs = client.readDtcs(dtc_status::kFailedPendingConfirmed).value();
     ASSERT_EQ(dtcs.size(), 1U);
     EXPECT_EQ(dtcs[0].status, 0x2E);
 
@@ -86,7 +86,18 @@ TEST_F(SimulatedEcuTest, HardResetLosesDtcsBecauseTheyAreInRam)
     ecu.reportMonitor(Monitor::SpeedTimeout, true);
     ASSERT_TRUE(client.startSession(Session::Extended).ok());
     ASSERT_TRUE(client.ecuReset(ResetType::Hard).ok());
-    EXPECT_TRUE(client.readDtcs(dtc_status::kAll).value().empty());
+    EXPECT_TRUE(client.readDtcs(dtc_status::kFailedPendingConfirmed).value().empty());
+}
+
+TEST_F(SimulatedEcuTest, MonitorsThatNeverRanAreReportedWithStatus50)
+{
+    // Mask 0xFF also matches "test not completed" (0x50): every DTC is listed until its monitor runs.
+    const auto all = client.readDtcs(dtc_status::kAll).value();
+    ASSERT_EQ(all.size(), control_ecu::kMonitorCount);
+    for (const Dtc& d : all)
+    {
+        EXPECT_EQ(d.status, 0x50);
+    }
 }
 
 TEST_F(SimulatedEcuTest, S3TimeoutReturnsToDefaultSession)
