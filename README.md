@@ -1,5 +1,7 @@
 # Mini Automotive ECU Network with UDS Diagnostics
 
+[![tests](https://github.com/huydinhischanging/mini-automotive-ecu-uds/actions/workflows/tests.yml/badge.svg)](https://github.com/huydinhischanging/mini-automotive-ecu-uds/actions/workflows/tests.yml)
+
 A scaled-down model of an in-vehicle network: several ECUs talk over CAN, detect faults,
 store diagnostic trouble codes (DTCs) and answer a diagnostic tester using **UDS (ISO 14229)**
 over **ISO-TP (ISO 15765-2)**.
@@ -107,6 +109,7 @@ common/isotp/        ISO 15765-2 transport layer (SF/FF/CF/FC, BS, STmin, N_Bs/N
 common/uds/          UDS server (ISO 14229-1)
 common/dtc/          DTC manager with ISO 14229 status bits
 tests/               host unit tests (make)
+tester/              C++20 UDS client, simulated ECU, GoogleTest (CMake)
 tools/               check_all.sh, static_analysis.sh, MISRA suppressions
 docs/                report (LaTeX + PDF), logs, MISRA deviations, images
 ```
@@ -146,6 +149,24 @@ Hardware-independent modules are tested on the PC with fake CAN driver and clock
 cd tests
 make          # needs gcc (Linux, or MSYS2 UCRT64 on Windows)
 ```
+
+## C++ UDS tester (`tester/`)
+
+A UDS client in C++20 that will run on the DK1's Linux side and reach the Control ECU over
+RPMsg. The client talks to an `ITransport` interface, so the same code runs against:
+
+- `SimulatedEcu`: the **real C UDS server and DTC manager from `common/`** linked into the host
+  program, so the client is tested against the code that runs on the M4;
+- `RpmsgTransport` on the DK1 (next step).
+
+```
+cmake -S tester -B tester/build -G Ninja && cmake --build tester/build
+ctest --test-dir tester/build          # GoogleTest
+tester/build/uds_tester --sim          # same scenario as the M5 tester, against SimulatedEcu
+```
+
+GitHub Actions builds and runs the C unit tests (UBSan) and the C++ tests (ASan + UBSan) on
+every push.
 
 ## Static analysis (cppcheck + MISRA C:2012)
 
@@ -286,7 +307,8 @@ Known open points:
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)
 - [x] M5: external UDS tester on the Sensor ECU, 22/22 steps over the bus incl. hard reset
-- [ ] C++ UDS tester on Linux (Cortex-A7) over RPMsg: IPCC + OpenAMP enabled on the M4, bridge and client in progress
+- [x] C++ UDS client (C++20, CMake, GoogleTest) verified against the real UDS server in simulation
+- [ ] C++ UDS tester on Linux (Cortex-A7) over RPMsg: IPCC + OpenAMP enabled on the M4, RPMsg bridge next
 - [x] Host unit tests: 56 tests / 277 checks (ISO-TP, E2E, DTC, UDS)
 - [x] cppcheck + MISRA C:2012 addon: no findings, deviations documented
 - [x] Demo video: https://www.youtube.com/watch?v=Ocq1K0BO8kM

@@ -13,6 +13,7 @@ Release/
 
 # Host unit test output
 tests/build/
+tester/build/
 
 # IDE / workspace
 .metadata/
