@@ -49,3 +49,10 @@ docs/report/*.fdb_latexmk
 docs/report/*.xdv
 docs/report/*.blg
 docs/report/*.bbl
+
+# Local media and drafts (demo video is on YouTube)
+Demo/
+Report/
+
+# Course website build output (regenerate: node docs/course/build.js)
+docs/course/dist/
