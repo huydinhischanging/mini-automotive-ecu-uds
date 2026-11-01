@@ -110,7 +110,7 @@ common/uds/          UDS server (ISO 14229-1)
 common/dtc/          DTC manager with ISO 14229 status bits
 tests/               host unit tests (make)
 tester/              C++20 UDS client, simulated ECU, GoogleTest (CMake)
-tools/               check_all.sh, static_analysis.sh, MISRA suppressions
+tools/               check_all.sh, static_analysis.sh, arm_compile_check.sh, MISRA suppressions
 docs/                report (LaTeX + PDF), logs, MISRA deviations, images
 ```
 
@@ -170,7 +170,10 @@ every push.
 
 ## Static analysis (cppcheck + MISRA C:2012)
 
-Run all host checks (unit tests + static analysis) in one go: `tools/check_all.sh`
+Run all host checks (unit tests, static analysis, and a compile of both firmwares with
+`arm-none-eabi-gcc`) in one go: `tools/check_all.sh`. The compile step uses the toolchain bundled
+with STM32CubeIDE and is skipped if none is found; it can also be run on its own:
+`tools/arm_compile_check.sh [FILE.c ...]`.
 
 ```
 tools/static_analysis.sh      # cppcheck 2.x with the MISRA addon, exit 1 on findings
@@ -303,6 +306,8 @@ Known open points:
 - [x] M3: UDS server + DTC manager on the Control ECU, 14/14 on-target UDS self-test in loopback
 - [x] M4: two-node bus, 100 frames/s with 0 E2E errors, 0x200 status back to the Sensor ECU, fault injection -> DTCs
 - [ ] Logic analyzer capture of bit timing on the bus
+- [ ] E2E fault injection on the Sensor ECU (corrupted CRC, repeated counter, counter jump) to exercise
+      the Control ECU's E2E monitor and DTC `U0400-81` on the bus
 - [x] ISO-TP (SF, FF, CF, FC, block size, STmin, timeouts) with 26 host unit tests
 - [x] UDS server with services above (11 host unit tests)
 - [x] DTC manager (ISO 14229 status bits, debounce, operation cycle; 11 host unit tests)

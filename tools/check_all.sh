@@ -1,5 +1,6 @@
 #!/bin/bash
-# Run every host-side check: unit tests, then static analysis (cppcheck + MISRA).
+# Run every host-side check: unit tests, static analysis (cppcheck + MISRA), then
+# a compile of the firmware sources with the ARM toolchain (skipped if absent).
 #
 #   tools/check_all.sh
 #
@@ -19,6 +20,18 @@ make -s -C tests || exit 1
 echo
 echo "=============== Static analysis (cppcheck + MISRA C:2012) ==============="
 bash tools/static_analysis.sh || exit 1
+
+echo
+echo "=============== Target compile (arm-none-eabi-gcc) ==============="
+# Kept in a variable: with MSYS2 first on PATH, its /tmp is not Git Bash's /tmp.
+out=$(bash tools/arm_compile_check.sh 2>&1)
+rc=$?
+if [ $rc -eq 2 ]; then
+    echo "skipped: $out"
+else
+    echo "$out" | grep -v '^ok '
+fi
+[ $rc -eq 0 ] || [ $rc -eq 2 ] || exit 1
 
 echo
 echo "All checks passed."
